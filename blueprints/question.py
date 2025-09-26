@@ -3,7 +3,6 @@ from bson import ObjectId
 from pymongo import MongoClient
 
 from config import MONGO_URI, MONGO_DB_NAME
-from extensions.llm import call_llm_json
 
 mongo_client = MongoClient(MONGO_URI)
 db = mongo_client[MONGO_DB_NAME]

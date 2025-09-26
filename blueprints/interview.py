@@ -17,6 +17,7 @@ db = mongo_client[MONGO_DB_NAME]
 chunks_col = db["chunks"]
 interviews_col = db["interviews"]
 interview_session_col = db["interview_session"]
+users_col = db["users"]
 
 # ==== Blueprint ====
 interview_bp = Blueprint("interview", __name__)
@@ -40,18 +41,60 @@ def load_texts_by_chunk_ids(chunk_ids):
             continue
     return texts
 
-def select_chunks_round_robin(interview: dict, k: int = 3) -> List[str]:
-    """Chọn vòng tròn trong RAM, không lưu DB"""
-    chunk_ids = interview.get("chunk_ids", [])
-    if not chunk_ids:
-        return []
 
+def to_iso(dt):
+    if isinstance(dt, datetime.datetime):
+        return dt.replace(tzinfo=datetime.timezone.utc).isoformat()
+    return dt
+
+def parse_iso_to_utc(dt_str: str):
+    try:
+        if dt_str.endswith("Z"):
+            dt_str = dt_str[:-1] + "+00:00"
+
+        dt = datetime.datetime.fromisoformat(dt_str)
+
+        # ép về UTC
+        if dt.tzinfo:
+            dt = dt.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+        return dt
+    except Exception as e:
+        print("parse_iso_to_utc error:", e, dt_str)
+        return None
+
+def select_chunks_round_robin_by_syllabus(
+    syllabus_id: str,
+    interview: dict,
+    k: int = 3
+) -> List[str]:
+    """
+    Chọn vòng tròn k chunks cho buổi phỏng vấn.
+    - Lấy 30 chunk ngẫu nhiên từ DB theo syllabus_id (trong metadata).
+    - Sau đó chọn k chunk theo vòng tròn, update cursor trong interview.
+    """
+    if not interview.get("chunk_ids"):
+        # Lọc chunk dựa vào metadata.syllabus_id (string)
+        all_chunks = list(chunks_col.find(
+            {"metadata.syllabus_id": syllabus_id},
+            {"_id": 1}
+        ))
+
+        if not all_chunks:
+            return []
+
+        # Lấy ngẫu nhiên tối đa 50 chunk
+        sampled = random.sample(all_chunks, min(50, len(all_chunks)))
+        interview["chunk_ids"] = [str(c["_id"]) for c in sampled]
+
+    # Round-robin chọn k chunk
+    chunk_ids = interview["chunk_ids"]
     cursor = interview.get("cursor", 0)
     n = len(chunk_ids)
     selected = [chunk_ids[(cursor + i) % n] for i in range(k)]
-    new_cursor = (cursor + k) % n
-    interview["cursor"] = new_cursor
+    interview["cursor"] = (cursor + k) % n
+
     return selected
+
 
 def prompt_generate_question_with_session(
     summary: str,
@@ -77,7 +120,7 @@ Bạn là giảng viên đang phỏng vấn sinh viên để kiểm tra. Hãy đ
 \"\"\"{context_formatted}\"\"\"
 
 Nhiệm vụ:
-Sinh ra 1 câu hỏi phỏng vấn mới (dạng {type_str}), độ khó Bloom: {difficulty}, phù hợp với diễn tiến trong summary + recent Q&A.
+Sinh ra 1 câu hỏi phỏng vấn mới dạng {type_str}, độ khó Bloom: {difficulty}, phù hợp với diễn tiến trong summary + recent Q&A.
 Yêu cầu bổ sung (nếu có): {additional}
 
 Trả về JSON object:
@@ -102,6 +145,7 @@ Quy tắc:
 - Không copy toàn bộ ví dụ, dữ liệu, hay lời giải có sẵn trong chunk.
 - Ngôn ngữ thân thiện, giống người phỏng vấn nói trực tiếp với người được phỏng vấn
 - Người phỏng vấn không được đọc tài liệu mà AI được nhận, không sinh ra những câu hỏi dựa trên ví dụ cụ thể trong văn bản được nhận
+- Không hỏi liên tục về một nội dung quá 3 câu
 """.strip()
 
 # ==== Routes ====
@@ -110,15 +154,45 @@ Quy tắc:
 def create_interview():
     data = request.get_json(force=True)
     interview_id = str(uuid.uuid4())
+
+    title = data.get("title")
     creator_id = data.get("creator_id")
     syllabus_id = data.get("syllabus_id")
     duration = data.get("duration_by_minutes")
     difficulty = data.get("difficulty")
     question_type = data.get("question_type")
     additional = data.get("additional")
+    available_at = data.get("available_at")
+    if available_at:
+        if isinstance(available_at, str):
+            available_at = parse_iso_to_utc(available_at)
+        elif isinstance(available_at, datetime.datetime):
+            available_at = available_at
 
-    interviews_col.insert_one({
+    # validate input
+    missing_fields = []
+    if creator_id is None:
+        missing_fields.append("creator_id")
+    if title is None:
+        missing_fields.append("title")
+    if syllabus_id is None:
+        missing_fields.append("syllabus_id")
+    if duration is None:
+        missing_fields.append("duration_by_minutes")
+    if difficulty is None:
+        missing_fields.append("difficulty")
+    if question_type is None:
+        missing_fields.append("question_type")
+    if additional is None:
+        missing_fields.append("additional")
+
+    if missing_fields:
+        return jsonify({"error": f"Missing fields: {', '.join(missing_fields)}"}), 400
+
+    # insert interview vào bảng chính
+    interview_doc = {
         "_id": interview_id,
+        "title": title,
         "creator_id": creator_id,
         "participant_ids": [],
         "syllabus_id": syllabus_id,
@@ -126,10 +200,23 @@ def create_interview():
         "difficulty": difficulty,
         "questionType": question_type,
         "additional": additional,
-        "status": "Unavailable"
-    })
+        "status": "Unavailable",
+        "available_at": available_at,
+        "created_at": now_utc()
+    }
+    interviews_col.insert_one(interview_doc)
+
+    users_col.update_one(
+        {"_id": creator_id},
+        {
+            "$setOnInsert": {"_id": creator_id},
+            "$addToSet": {"interviews": interview_id}
+        },
+        upsert=True,
+    )
 
     return jsonify({"interview_id": interview_id}), 200
+
 
 
 @interview_bp.route("/start", methods=["POST"])
@@ -166,10 +253,10 @@ def start_interview():
 
     return jsonify({
         "session_id": session_id,
-        "interview_id": interview_id,
-        "participant_id": participant_id,
     }), 200
 
+
+import random
 
 @interview_bp.route("/next_question", methods=["POST"])
 def next_question():
@@ -184,7 +271,6 @@ def next_question():
         return jsonify({"error": "Interview not started or not in cache"}), 404
 
     interview_id = interview.get("interview_id")
-
     db_interview = interviews_col.find_one({"_id": interview_id})
     if not db_interview:
         return jsonify({"error": "Interview not found in DB"}), 404
@@ -193,7 +279,22 @@ def next_question():
     question_type = db_interview.get("questionType")
     additional = db_interview.get("additional", "")
 
-    selected_chunk_ids = select_chunks_round_robin(interview, k=3)
+    # --------------------
+    # Chọn ngẫu nhiên 1 loại question_type
+    if isinstance(question_type, list) and question_type:
+        types = [random.choice(question_type)]
+    elif isinstance(question_type, str):
+        types = [question_type]
+    else:
+        types = []
+
+    # --------------------
+
+    syllabus_id = db_interview.get("syllabus_id")
+    selected_chunk_ids = select_chunks_round_robin_by_syllabus(syllabus_id, interview, k=3)
+    if not selected_chunk_ids:
+        return jsonify({"error": "No valid chunks found"}), 404
+
     texts = load_texts_by_chunk_ids(selected_chunk_ids)
     if not texts:
         return jsonify({"error": "No valid chunks found"}), 404
@@ -207,7 +308,7 @@ def next_question():
         recent_qa=recent_qa,
         context_formatted=context_formatted,
         difficulty=difficulty,
-        types=[question_type] if question_type else [],
+        types=types,  # luôn là list với 1 phần tử
         additional=additional,
     )
 
@@ -217,6 +318,8 @@ def next_question():
         return jsonify({"error": "LLM error", "detail": str(e)}), 500
 
     return jsonify(obj), 200
+
+
 
 
 @interview_bp.route("/answer", methods=["POST"])
@@ -294,3 +397,51 @@ def end():
         "end_time": now_utc().isoformat() + "Z",
     }
     return jsonify(result), 200
+
+@interview_bp.route("/user_interviews/<user_id>", methods=["GET"])
+def get_user_interviews(user_id):
+    try:
+        # lấy user
+        user = users_col.find_one({"_id": user_id})
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        # lấy danh sách id interview
+        interview_ids = user.get("interviews", [])
+        if not interview_ids:
+            return jsonify([]), 200
+
+        # query trực tiếp từ bảng interviews
+        interviews = list(interviews_col.find({"_id": {"$in": interview_ids}}))
+
+        now = now_utc()
+        updated_ids = []
+
+        for iv in interviews:
+            available_at = iv.get("available_at")
+            status = iv.get("status", "Unavailable")
+
+            # parse datetime
+            if isinstance(available_at, str):
+                available_at_dt = parse_iso_to_utc(available_at)
+            elif isinstance(available_at, datetime.datetime):
+                available_at_dt = available_at
+            else:
+                available_at_dt = None
+
+            # update status nếu tới giờ
+            if available_at_dt and now >= available_at_dt and status == "Unavailable":
+                interviews_col.update_one(
+                    {"_id": iv["_id"]},
+                    {"$set": {"status": "Available"}}
+                )
+                iv["status"] = "Available"
+                updated_ids.append(iv["_id"])
+
+            iv["available_at"] = to_iso(available_at_dt)
+            iv["created_at"] = to_iso(iv.get("created_at"))
+
+        return jsonify(interviews), 200
+
+    except Exception as e:
+        return jsonify({"error": "Server error", "detail": str(e)}), 500
