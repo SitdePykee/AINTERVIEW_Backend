@@ -4,6 +4,7 @@ services:
   mongo:
     image: mongo:6.0
     container_name: ai_mongo
+    hostname: mongo
     restart: unless-stopped
     ports:
       - "8002:27017"
