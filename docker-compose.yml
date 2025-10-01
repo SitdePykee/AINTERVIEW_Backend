@@ -9,6 +9,8 @@ services:
       - "8002:27017"
     volumes:
       - mongo_data:/data/db
+    networks:
+      - ai_network
 
   backend:
     build:
