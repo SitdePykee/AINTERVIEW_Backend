@@ -17,7 +17,7 @@ SESSIONS = {}
 @auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json()
-    name = data["name"]
+    name = data.get("name")
     email = data.get("email")
     password = data.get("password")
     role = data.get("role")
