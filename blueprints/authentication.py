@@ -41,9 +41,15 @@ def register():
 
     users_col.insert_one(new_user)
 
+    # Trả về full user object
     return jsonify({
         "message": "User registered successfully",
-        "user_id": new_user["_id"]
+        "user": {
+            "_id": new_user["_id"],
+            "name": new_user["name"],
+            "email": new_user["email"],
+            "role": new_user["role"]
+        }
     }), 201
 
 
@@ -71,8 +77,12 @@ def signin():
     return jsonify({
         "message": "Signed in successfully",
         "token": token,
-        "user_id": str(user["_id"]),
-        "role": user.get("role", "user")
+        "user": {
+            "_id": str(user["_id"]),
+            "name": user.get("name", ""),
+            "email": user.get("email", ""),
+            "role": user.get("role", "user")
+        }
     }), 200
 
 
@@ -96,5 +106,9 @@ def get_user_by_id(user_id):
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    user["_id"] = str(user["_id"])
-    return jsonify(user), 200
+    return jsonify({
+        "_id": str(user["_id"]),
+        "name": user.get("name", ""),
+        "email": user.get("email", ""),
+        "role": user.get("role", "user")
+    }), 200
