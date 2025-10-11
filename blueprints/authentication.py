@@ -17,6 +17,7 @@ SESSIONS = {}
 @auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json()
+    name = data["name"]
     email = data.get("email")
     password = data.get("password")
     role = data.get("role")
@@ -32,6 +33,7 @@ def register():
 
     new_user = {
         "_id": str(uuid.uuid4()),
+        "name": name,
         "email": email,
         "password": hashed_pw.decode("utf-8"),
         "role": role or "user",
