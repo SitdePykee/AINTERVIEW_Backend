@@ -22,12 +22,12 @@ def upload_curriculum_excel():
     if not user_id:
         return jsonify({"error": "Require user_id"}), 400
 
+    # Đọc Excel từ bộ nhớ (không lưu ra ổ đĩa)
     try:
         file_bytes = io.BytesIO(file.read())
-        try:
-            df = pd.read_excel(file_bytes, engine='openpyxl')
-        except ImportError:
-            df = pd.read_excel(file_bytes, engine='xlrd')
+
+        df = pd.read_excel(file_bytes, engine='openpyxl')
+
     except Exception as e:
         return jsonify({"error": f"Cannot read Excel file: {str(e)}"}), 500
 
