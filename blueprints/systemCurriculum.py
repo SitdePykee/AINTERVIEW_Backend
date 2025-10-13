@@ -3,7 +3,6 @@ from pymongo import MongoClient
 from config import MONGO_URI, MONGO_DB_NAME
 import pandas as pd
 import uuid
-import datetime
 import io
 
 curriculum_bp = Blueprint('curriculum', __name__)
@@ -57,7 +56,6 @@ def upload_curriculum_excel():
             "upload_date": row.get("upload-date", ""),
             "description": row.get("description", ""),
             "uploaded_by": user_id,
-            "created_at": datetime.datetime.utcnow()
         }
         documents.append(doc)
 
@@ -83,9 +81,6 @@ def get_curriculum():
             # Chuyển ObjectId sang chuỗi
             if '_id' in c and isinstance(c['_id'], ObjectId):
                 c['_id'] = str(c['_id'])
-            # Chuyển datetime sang chuỗi
-            if 'created_at' in c and hasattr(c['created_at'], 'isoformat'):
-                c['created_at'] = c['created_at'].isoformat()
 
         return jsonify(curriculums), 200
 
