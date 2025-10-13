@@ -70,3 +70,21 @@ def upload_curriculum_excel():
         "inserted_count": len(documents),
         "user_id": user_id
     }), 200
+
+
+@curriculum_bp.route('/get-curriculum', methods=['GET'])
+def get_curriculum():
+    try:
+        # Lấy tất cả document từ Mongo
+        curriculums = list(system_curriculum_col.find({}))
+
+        # Chuyển ObjectId và datetime sang chuỗi để jsonify không lỗi
+        for c in curriculums:
+            c['_id'] = str(c['_id'])
+            if 'created_at' in c:
+                c['created_at'] = c['created_at'].isoformat()
+
+        return jsonify(curriculums), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Cannot fetch data: {str(e)}"}), 500
