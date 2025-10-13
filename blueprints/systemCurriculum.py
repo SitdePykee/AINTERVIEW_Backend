@@ -72,11 +72,20 @@ def upload_curriculum_excel():
     }), 200
 
 
+from bson import ObjectId
+
 @curriculum_bp.route('/get-curriculum', methods=['GET'])
 def get_curriculum():
     try:
-        # Lấy tất cả document từ Mongo
         curriculums = list(system_curriculum_col.find({}))
+
+        for c in curriculums:
+            # Chuyển ObjectId sang chuỗi
+            if '_id' in c and isinstance(c['_id'], ObjectId):
+                c['_id'] = str(c['_id'])
+            # Chuyển datetime sang chuỗi
+            if 'created_at' in c and hasattr(c['created_at'], 'isoformat'):
+                c['created_at'] = c['created_at'].isoformat()
 
         return jsonify(curriculums), 200
 
