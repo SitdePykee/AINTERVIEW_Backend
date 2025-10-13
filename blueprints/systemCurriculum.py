@@ -4,7 +4,7 @@ from config import MONGO_URI, MONGO_DB_NAME
 import pandas as pd
 import uuid
 import datetime
-import os
+import io
 
 curriculum_bp = Blueprint('curriculum', __name__)
 mongo_client = MongoClient(MONGO_URI)
@@ -22,13 +22,12 @@ def upload_curriculum_excel():
     if not user_id:
         return jsonify({"error": "Require user_id"}), 400
 
-    # Lưu file tạm
-    os.makedirs("uploads", exist_ok=True)
-    file_path = os.path.join("uploads", file.filename)
-    file.save(file_path)
-
     try:
-        df = pd.read_excel(file_path)
+        file_bytes = io.BytesIO(file.read())
+        try:
+            df = pd.read_excel(file_bytes, engine='openpyxl')
+        except ImportError:
+            df = pd.read_excel(file_bytes, engine='xlrd')
     except Exception as e:
         return jsonify({"error": f"Cannot read Excel file: {str(e)}"}), 500
 
