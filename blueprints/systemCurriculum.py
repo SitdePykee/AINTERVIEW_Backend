@@ -69,20 +69,29 @@ def upload_curriculum_excel():
         "user_id": user_id
     }), 200
 
-
 from bson import ObjectId
+import math
 
 @curriculum_bp.route('/get-curriculum', methods=['GET'])
 def get_curriculum():
     try:
         curriculums = list(system_curriculum_col.find({}))
 
+        clean_curriculums = []
         for c in curriculums:
-            # Chuyển ObjectId sang chuỗi
-            if '_id' in c and isinstance(c['_id'], ObjectId):
-                c['_id'] = str(c['_id'])
+            clean_doc = {}
+            for k, v in c.items():
+                # Chuyển ObjectId -> str
+                if isinstance(v, ObjectId):
+                    clean_doc[k] = str(v)
+                # Chuyển NaN -> None
+                elif isinstance(v, float) and math.isnan(v):
+                    clean_doc[k] = None
+                else:
+                    clean_doc[k] = v
+            clean_curriculums.append(clean_doc)
 
-        return jsonify(curriculums), 200
+        return jsonify(clean_curriculums), 200
 
     except Exception as e:
         return jsonify({"error": f"Cannot fetch data: {str(e)}"}), 500
