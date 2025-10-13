@@ -3,6 +3,8 @@ from blueprints.question import question_bp
 from blueprints.interview import interview_bp
 from blueprints.syllabus import syllabus_bp
 from blueprints.authentication import auth_bp
+from blueprints.systemCurriculum import curriculum_bp
+
 
 def create_app():
     app = Flask(__name__)
@@ -11,7 +13,7 @@ def create_app():
     def index():
         return "Backend is running"
 
-
+    app.register_blueprint(curriculum_bp, url_prefix='/system_curriculum')
     app.register_blueprint(question_bp, url_prefix="/question")
     app.register_blueprint(interview_bp, url_prefix="/interview")
     app.register_blueprint(syllabus_bp, url_prefix="/syllabus")
