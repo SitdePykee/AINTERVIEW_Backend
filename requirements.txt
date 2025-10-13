@@ -35,6 +35,7 @@ jiter==0.10.0
 jsonify==0.5
 MarkupSafe==3.0.2
 numpy==2.0.2
+xlrd==2.0.1
 openai==1.99.9
 pandas==2.3.3
 pdfminer.six==20250506
