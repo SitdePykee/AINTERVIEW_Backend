@@ -78,11 +78,6 @@ def get_curriculum():
         # Lấy tất cả document từ Mongo
         curriculums = list(system_curriculum_col.find({}))
 
-        # datetime sang chuỗi để jsonify không lỗi
-        for c in curriculums:
-            if 'created_at' in c:
-                c['created_at'] = c['created_at'].isoformat()
-
         return jsonify(curriculums), 200
 
     except Exception as e:
