@@ -1,7 +1,7 @@
 import re
 import unicodedata
 
-def get_chapter_title(text):
+def get_current_chapter(text):
     m = re.search(r"(?im)^chương\s*\d+[^\n]*", text)
     return m.group().strip() if m else None
 
