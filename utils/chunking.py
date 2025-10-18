@@ -1,8 +1,15 @@
 import re
 import unicodedata
-
 def get_current_chapter(text):
-    m = re.search(r"(?im)^chương\s*\d+[^\n]*", text)
+    pattern = r"""(?imx)
+        ^\s*                                   # đầu dòng, có thể có khoảng trắng
+        (?:chương|chuong|chapter)              # hỗ trợ cả tiếng Việt và tiếng Anh
+        [\s.:;\-–—_]*                          # các ký tự ngăn cách
+        (?:[ivxlcdm]+|\d+(?:[\.,]\d+)?)?       # số La Mã hoặc số thường (nếu có)
+        [\s.:;\-–—_]*                          # ngăn cách thêm
+        [^\n]*                                 # tiêu đề (nếu có)
+    """
+    m = re.search(pattern, text)
     return m.group().strip() if m else None
 
 

@@ -312,43 +312,27 @@ import random
 
 @interview_bp.route("/next_question", methods=["POST"])
 def next_question():
-    try:
-        data = request.get_json(force=True)
-    except Exception as e:
-        return jsonify({"error": "Invalid JSON", "detail": str(e)}), 400
-
+    data = request.get_json(force=True)
     session_id = data.get("session_id")
+
     if not session_id:
         return jsonify({"error": "session_id is required"}), 400
 
-    # Debug log 1
-    print(f"[DEBUG] Received session_id: {session_id}")
-
     interview = INTERVIEW_CACHE.get(session_id)
     if not interview:
-        return jsonify({
-            "error": "Interview not started or not in cache",
-            "debug": {"available_sessions": list(INTERVIEW_CACHE.keys())}
-        }), 404
+        return jsonify({"error": "Interview not started or not in cache"}), 404
 
     interview_id = interview.get("interview_id")
     db_interview = interviews_col.find_one({"_id": interview_id})
     if not db_interview:
-        return jsonify({
-            "error": "Interview not found in DB",
-            "debug": {"interview_id": interview_id}
-        }), 404
+        return jsonify({"error": "Interview not found in DB"}), 404
 
     difficulty = db_interview.get("difficulty")
     question_type = db_interview.get("questionType")
     additional = db_interview.get("additional", "")
-    syllabus_id = db_interview.get("syllabus_id")
-
-    # Debug log 2
-    print(f"[DEBUG] Interview data: {db_interview}")
 
     # --------------------
-    # Xử lý loại câu hỏi
+    # Chọn ngẫu nhiên 1 loại question_type
     if isinstance(question_type, list) and question_type:
         types = [random.choice(question_type)]
     elif isinstance(question_type, str):
@@ -357,19 +341,15 @@ def next_question():
         types = []
 
     # --------------------
+
+    syllabus_id = db_interview.get("syllabus_id")
     selected_chunk_ids = select_chunks_round_robin_by_syllabus(syllabus_id, interview, k=3)
     if not selected_chunk_ids:
-        return jsonify({
-            "error": "No valid chunks found",
-            "debug": {"syllabus_id": syllabus_id}
-        }), 404
+        return jsonify({"error": "No valid chunks found"}), 404
 
     texts = load_texts_by_chunk_ids(selected_chunk_ids)
     if not texts:
-        return jsonify({
-            "error": "No valid texts found",
-            "debug": {"chunk_ids": selected_chunk_ids}
-        }), 404
+        return jsonify({"error": "No valid chunks found"}), 404
 
     context_formatted = "\n\n".join([f"[{t['cid']}]: {t['text']}" for t in texts])
     summary = interview.get("summary", "")
@@ -384,33 +364,12 @@ def next_question():
         additional=additional,
     )
 
-    # Debug log 3
-    print(f"[DEBUG] Prompt preview:\n{prompt[:500]}...")
-
     try:
         obj = call_llm_json(prompt)
     except Exception as e:
-        return jsonify({
-            "error": "LLM error",
-            "detail": str(e),
-            "debug": {"prompt_snippet": prompt[:500]}
-        }), 500
+        return jsonify({"error": "LLM error", "detail": str(e)}), 500
 
-    # Debug log 4
-    print(f"[DEBUG] LLM returned: {obj}")
-
-    return jsonify({
-        "message": "Question generated successfully",
-        "data": obj,
-        "debug": {
-            "session_id": session_id,
-            "difficulty": difficulty,
-            "types": types,
-            "chunks": selected_chunk_ids,
-            "text_count": len(texts)
-        }
-    }), 200
-
+    return jsonify(obj), 200
 
 
 
