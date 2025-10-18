@@ -148,6 +148,58 @@ Quy tắc:
 - Không hỏi liên tục về một nội dung quá 3 câu
 """.strip()
 
+def prompt_generate_question_from_system_curriculum_with_session(
+    summary: str,
+    recent_qa: List[Dict],
+    context_formatted: str,
+    difficulty: str,
+    types: List[str],
+    additional: str
+) -> str:
+    type_str = " hoặc ".join(types)
+    recent_qa_str = json.dumps(recent_qa, ensure_ascii=False, indent=2)
+
+    return f"""
+Bạn là giảng viên đang phỏng vấn sinh viên để kiểm tra. Hãy đọc thông tin buổi phỏng vấn sau:
+
+[Session Summary - tóm tắt tiến trình tới hiện tại]
+{summary}
+
+[Recent Q&A - vài lượt gần nhất]
+{recent_qa_str}
+
+[Content]
+\"\"\"{context_formatted}\"\"\"
+
+Nhiệm vụ:
+Sinh ra 1 câu hỏi phỏng vấn mới dạng {type_str}, độ khó Bloom: {difficulty}, phù hợp với diễn tiến trong summary + recent Q&A.
+Yêu cầu bổ sung (nếu có): {additional}
+
+Trả về JSON object:
+{{
+  "question": "...",
+  "question_type": "...",
+  "answer": "...",
+  "options": [...],  # chỉ nếu question_type = "multiple_choice"
+  "source": {{
+    "chunk_id": "None",
+    "start": "None",  
+    "end": "None"     
+  }}
+}}
+
+Quy tắc:
+- Không lặp lại ý/câu hỏi đã hỏi gần đây trừ khi follow-up có chủ đích.
+- Nếu question_type != "multiple_choice" thì bỏ trường "options".
+- Không sinh những câu hỏi "Theo tài liệu nhận được", "Dựa trên ví dụ" hoặc tương tự
+- Chỉ trả JSON thuần, không thêm bất kì gì khác, đặc biệt là không markdown code block (```json ... ```), không sử dụng Latex.
+- Câu hỏi phải hỏi người dùng về kiến thức / áp dụng / lý giải, có thể tạo các câu hỏi tính toán dựa trên lý thuyết nhận được.
+- Không copy toàn bộ ví dụ, dữ liệu, hay lời giải có sẵn trong chunk.
+- Ngôn ngữ thân thiện, giống người phỏng vấn nói trực tiếp với người được phỏng vấn
+- Người phỏng vấn không được đọc tài liệu mà AI được nhận, không sinh ra những câu hỏi dựa trên ví dụ cụ thể trong văn bản được nhận
+- Không hỏi liên tục về một nội dung quá 3 câu
+""".strip()
+
 # ==== Routes ====
 
 @interview_bp.route("/create", methods=["POST"])

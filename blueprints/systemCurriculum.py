@@ -4,6 +4,8 @@ from config import MONGO_URI, MONGO_DB_NAME
 import pandas as pd
 import uuid
 import io
+from bson import ObjectId
+import math
 
 curriculum_bp = Blueprint('curriculum', __name__)
 mongo_client = MongoClient(MONGO_URI)
@@ -69,9 +71,6 @@ def upload_curriculum_excel():
         "user_id": user_id
     }), 200
 
-from bson import ObjectId
-import math
-
 @curriculum_bp.route('/get-curriculum', methods=['GET'])
 def get_curriculum():
     try:
@@ -95,3 +94,4 @@ def get_curriculum():
 
     except Exception as e:
         return jsonify({"error": f"Cannot fetch data: {str(e)}"}), 500
+
