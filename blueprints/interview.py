@@ -367,7 +367,10 @@ def next_question():
     try:
         obj = call_llm_json(prompt)
     except Exception as e:
-        return jsonify({"error": "LLM error", "detail": str(e)}), 500
+        if "429" in str(e) or "RATE_LIMIT_EXCEEDED" in str(e):
+            return jsonify({"error": "Rate limit exceeded. Please try again later."}), 429
+        else:
+            return jsonify({"error": "LLM error", "detail": str(e)}), 500
 
     return jsonify(obj), 200
 
