@@ -67,8 +67,8 @@ Trả về JSON object:
     "chunk_id": "None",
     "start": "None",
     "end": "None"
-  }}
-  "reason" : "..."  # Lí do cho câu trả lời trên
+  }},
+  "reason": "..."  # Lí do cho câu trả lời trên
 }}
 
 Quy tắc:
@@ -79,7 +79,6 @@ Quy tắc:
 - Ngôn ngữ thân thiện, giống người phỏng vấn nói trực tiếp với học sinh.
 """.strip()
 
-
 # ==== Routes ====
 
 @revision_bp.route("/create", methods=["POST"])
@@ -88,6 +87,7 @@ def create_revision():
     revision_id = str(uuid.uuid4())
 
     title = data.get("title")
+    subject = data.get("subject")
     creator_id = data.get("creator_id")
     duration = data.get("duration_by_minutes")
     difficulty = data.get("difficulty")
@@ -101,7 +101,7 @@ def create_revision():
             available_at = available_at
 
     missing_fields = []
-    for field in ["creator_id", "title", "duration_by_minutes", "difficulty", "question_type", "additional"]:
+    for field in ["creator_id", "title", "duration_by_minutes", "difficulty", "question_type", "additional", "subject"]:
         if data.get(field) is None:
             missing_fields.append(field)
 
@@ -112,7 +112,7 @@ def create_revision():
         "_id": revision_id,
         "title": title,
         "creator_id": creator_id,
-        "participant_ids": [],
+        "subject": subject,
         "duration": duration,
         "difficulty": difficulty,
         "questionType": question_type,
@@ -134,19 +134,26 @@ def create_revision():
 
     return jsonify({"revision_id": revision_id}), 200
 
-
 @revision_bp.route("/start", methods=["POST"])
 def start_revision():
     data = request.get_json(force=True)
     revision_id = data.get("revision_id")
-    participant_id = data.get("participant_id")
+
+    if not revision_id:
+        return jsonify({"error": "revision_id is required"}), 400
+
+    db_revision = revisions_col.find_one({"_id": revision_id})
+    if not db_revision:
+        return jsonify({"error": "Revision not found"}), 404
+
+    subject = db_revision.get("subject", "Unknown")
 
     session_id = str(uuid.uuid4())
 
     revision_session_col.insert_one({
         "_id": session_id,
         "revision_id": revision_id,
-        "participant_id": participant_id,
+        "subject": subject,
         "questions": [],
         "answers": [],
         "feedback": "",
@@ -158,7 +165,7 @@ def start_revision():
     REVISION_CACHE[session_id] = {
         "id": session_id,
         "revision_id": revision_id,
-        "participant_id": participant_id,
+        "subject": subject,
         "questions": [],
         "answers": [],
         "qa_log": [],
@@ -167,12 +174,10 @@ def start_revision():
 
     return jsonify({"session_id": session_id}), 200
 
-
 @revision_bp.route("/next_question", methods=["POST"])
 def next_revision_question():
     data = request.get_json(force=True)
     session_id = data.get("session_id")
-    subject = data.get("subject")
 
     if not session_id:
         return jsonify({"error": "session_id is required"}), 400
@@ -189,6 +194,7 @@ def next_revision_question():
     difficulty = db_revision.get("difficulty")
     question_type = db_revision.get("questionType")
     additional = db_revision.get("additional", "")
+    subject = revision.get("subject", "Unknown")
 
     # chọn 1 type ngẫu nhiên
     if isinstance(question_type, list) and question_type:
@@ -219,7 +225,6 @@ def next_revision_question():
             return jsonify({"error": "LLM error", "detail": str(e)}), 500
 
     return jsonify(obj), 200
-
 
 @revision_bp.route("/answer", methods=["POST"])
 def answer_revision():
@@ -260,7 +265,6 @@ def answer_revision():
 
     return jsonify(updated), 200
 
-
 @revision_bp.route("/end", methods=["POST"])
 def end_revision():
     data = request.get_json(force=True)
@@ -291,7 +295,6 @@ def end_revision():
         "end_time": now_utc().isoformat() + "Z",
     }), 200
 
-
 @revision_bp.route("/user_revisions/<user_id>", methods=["GET"])
 def get_user_revisions(user_id):
     try:
@@ -320,7 +323,6 @@ def get_user_revisions(user_id):
 
     except Exception as e:
         return jsonify({"error": "Server error", "detail": str(e)}), 500
-
 
 @revision_bp.route("/all_revision", methods=["GET"])
 def get_all_revisions():
