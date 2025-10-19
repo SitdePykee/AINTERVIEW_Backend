@@ -532,10 +532,7 @@ def get_all_interviews():
             iv["created_at"] = to_iso(iv.get("created_at"))
             del iv["_id"]
 
-        return jsonify({
-            "total": len(interviews),
-            "interviews": interviews
-        }), 200
+        return jsonify(interviews), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
