@@ -498,7 +498,7 @@ def get_user_interviews(user_id):
     except Exception as e:
         return jsonify({"error": "Server error", "detail": str(e)}), 500
 
-@interview_bp.route("/interviews", methods=["GET"])
+@interview_bp.route("/all_interview", methods=["GET"])
 def get_all_interviews():
     try:
         now = datetime.datetime.utcnow()
