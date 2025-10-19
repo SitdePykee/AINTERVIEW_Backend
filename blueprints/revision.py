@@ -117,7 +117,7 @@ def create_revision():
         "difficulty": difficulty,
         "questionType": question_type,
         "additional": additional,
-        "status": "Unavailable",
+        "status": "Available",
         "available_at": available_at,
         "created_at": now_utc()
     }
