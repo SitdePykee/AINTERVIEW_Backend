@@ -504,7 +504,7 @@ def get_user_interviews(user_id):
 @interview_bp.route("/all_interview", methods=["GET"])
 def get_all_interviews():
     try:
-        now = datetime.datetime.utcnow()
+        now = now_utc()
         interviews = list(interviews_col.find({}))
         updated_ids = []
 
@@ -527,15 +527,12 @@ def get_all_interviews():
                     {"$set": {"status": "Available"}}
                 )
                 iv["status"] = "Available"
-                updated_ids.append(str(iv["_id"]))
+                updated_ids.append(iv["_id"])
 
-            # format dữ liệu để trả về JSON hợp lệ
-            iv["id"] = str(iv["_id"])
             iv["available_at"] = to_iso(available_at_dt)
             iv["created_at"] = to_iso(iv.get("created_at"))
-            del iv["_id"]
 
         return jsonify(interviews), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Server error", "detail": str(e)}), 500
