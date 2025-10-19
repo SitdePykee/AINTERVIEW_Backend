@@ -323,22 +323,3 @@ def get_user_revisions(user_id):
 
     except Exception as e:
         return jsonify({"error": "Server error", "detail": str(e)}), 500
-
-@revision_bp.route("/all_revision", methods=["GET"])
-def get_all_revisions():
-    try:
-        revisions = list(revisions_col.find({}))
-        now = now_utc()
-        for rv in revisions:
-            available_at = rv.get("available_at")
-            status = rv.get("status", "Unavailable")
-            if available_at and isinstance(available_at, datetime.datetime):
-                if now >= available_at and status == "Unavailable":
-                    revisions_col.update_one({"_id": rv["_id"]}, {"$set": {"status": "Available"}})
-                    rv["status"] = "Available"
-            rv["available_at"] = to_iso(available_at)
-            rv["created_at"] = to_iso(rv.get("created_at"))
-
-        return jsonify(revisions), 200
-    except Exception as e:
-        return jsonify({"error": "Server error", "detail": str(e)}), 500
