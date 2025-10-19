@@ -4,6 +4,7 @@ from blueprints.interview import interview_bp
 from blueprints.syllabus import syllabus_bp
 from blueprints.authentication import auth_bp
 from blueprints.systemCurriculum import curriculum_bp
+from blueprints.revision import revision_bp
 
 
 def create_app():
@@ -18,6 +19,7 @@ def create_app():
     app.register_blueprint(interview_bp, url_prefix="/interview")
     app.register_blueprint(syllabus_bp, url_prefix="/syllabus")
     app.register_blueprint(auth_bp, url_prefix="/auth")
+    app.register_blueprint(revision_bp, url_prefix="/revision")
     return app
 
 app = create_app()
