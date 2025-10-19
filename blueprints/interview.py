@@ -497,3 +497,45 @@ def get_user_interviews(user_id):
 
     except Exception as e:
         return jsonify({"error": "Server error", "detail": str(e)}), 500
+
+@interview_bp.route("/interviews", methods=["GET"])
+def get_all_interviews():
+    try:
+        now = datetime.datetime.utcnow()
+        interviews = list(interviews_col.find({}))
+        updated_ids = []
+
+        for iv in interviews:
+            available_at = iv.get("available_at")
+            status = iv.get("status", "Unavailable")
+
+            # parse datetime
+            if isinstance(available_at, str):
+                available_at_dt = parse_iso_to_utc(available_at)
+            elif isinstance(available_at, datetime.datetime):
+                available_at_dt = available_at
+            else:
+                available_at_dt = None
+
+            # cập nhật trạng thái nếu đến giờ
+            if available_at_dt and now >= available_at_dt and status == "Unavailable":
+                interviews_col.update_one(
+                    {"_id": iv["_id"]},
+                    {"$set": {"status": "Available"}}
+                )
+                iv["status"] = "Available"
+                updated_ids.append(str(iv["_id"]))
+
+            # format dữ liệu để trả về JSON hợp lệ
+            iv["id"] = str(iv["_id"])
+            iv["available_at"] = to_iso(available_at_dt)
+            iv["created_at"] = to_iso(iv.get("created_at"))
+            del iv["_id"]
+
+        return jsonify({
+            "total": len(interviews),
+            "interviews": interviews
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
