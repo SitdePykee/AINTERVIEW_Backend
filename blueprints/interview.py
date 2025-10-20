@@ -291,6 +291,12 @@ def start_interview():
         "end_time": None,
     })
 
+    interviews_col.update_one(
+        {"_id": interview_id},
+        {"$addToSet": {"participant_ids": session_id}}
+    )
+
+
     INTERVIEW_CACHE[session_id] = {
         "id": session_id,
         "interview_id": interview_id,
@@ -533,6 +539,55 @@ def get_all_interviews():
             iv["created_at"] = to_iso(iv.get("created_at"))
 
         return jsonify(interviews), 200
+
+    except Exception as e:
+        return jsonify({"error": "Server error", "detail": str(e)}), 500
+
+@interview_bp.route("/get_session/<session_id>", methods=["GET"])
+def get_session(session_id):
+    """
+    Lấy thông tin chi tiết của 1 phiên phỏng vấn (session)
+    """
+    try:
+        # tìm trong DB
+        session = interview_session_col.find_one({"_id": session_id})
+        if not session:
+            return jsonify({"error": "Session not found"}), 404
+
+        # format datetime nếu có
+        if "start_time" in session and isinstance(session["start_time"], datetime.datetime):
+            session["start_time"] = to_iso(session["start_time"])
+        if "end_time" in session and isinstance(session["end_time"], datetime.datetime):
+            session["end_time"] = to_iso(session["end_time"])
+
+        # convert ObjectId (nếu có trường nào chứa)
+        session["_id"] = str(session["_id"])
+        session["interview_id"] = str(session["interview_id"])
+
+        return jsonify(session), 200
+
+    except Exception as e:
+        return jsonify({"error": "Server error", "detail": str(e)}), 500
+
+@interview_bp.route("/sessions_by_interview/<interview_id>", methods=["GET"])
+def get_sessions_by_interview(interview_id):
+    """
+    Lấy tất cả các session thuộc về 1 interview cụ thể
+    """
+    try:
+        sessions = list(interview_session_col.find({"interview_id": interview_id}))
+        if not sessions:
+            return jsonify([]), 200
+
+        for s in sessions:
+            s["_id"] = str(s["_id"])
+            s["interview_id"] = str(s["interview_id"])
+            if "start_time" in s and isinstance(s["start_time"], datetime.datetime):
+                s["start_time"] = to_iso(s["start_time"])
+            if "end_time" in s and isinstance(s["end_time"], datetime.datetime):
+                s["end_time"] = to_iso(s["end_time"])
+
+        return jsonify(sessions), 200
 
     except Exception as e:
         return jsonify({"error": "Server error", "detail": str(e)}), 500
