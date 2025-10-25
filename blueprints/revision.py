@@ -63,19 +63,13 @@ Trả về JSON object:
   "question_type": "...",
   "answer": "...",
   "options": [...],  # chỉ nếu question_type = "multiple_choice"
-  "source": {{
-    "chunk_id": "None",
-    "start": "None",
-    "end": "None"
-  }},
-  "reason": "..."  # Lí do cho câu trả lời trên
 }}
 
 Quy tắc:
 - Không lặp lại ý/câu hỏi đã hỏi gần đây trừ khi follow-up có chủ đích.
 - Nếu question_type != "multiple_choice" thì bỏ trường "options".
 - Chỉ trả JSON thuần, không thêm markdown hay Latex.
-- Câu hỏi dựa trên kiến thức tổng quát, không dựa trên văn bản hay tài liệu cụ thể.
+- Câu hỏi dựa trên kiến thức tổng quát, có thể cho bài tập.
 - Ngôn ngữ thân thiện, giống người phỏng vấn nói trực tiếp với học sinh.
 """.strip()
 
