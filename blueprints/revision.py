@@ -71,6 +71,7 @@ Quy tắc:
 - Chỉ trả JSON thuần, không thêm markdown hay Latex.
 - Câu hỏi dựa trên kiến thức tổng quát, có thể cho bài tập.
 - Ngôn ngữ thân thiện, giống người phỏng vấn nói trực tiếp với học sinh.
+- Dựa vào câu trả lời trước đó của người dùng để ra câu hỏi tiếp theo cho phù hợp
 """.strip()
 
 # ==== Routes ====
