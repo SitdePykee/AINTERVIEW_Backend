@@ -116,10 +116,9 @@ def select_chunks_round_robin_by_system_syllabus(
 ) -> List[str]:
     """
     Chọn vòng tròn k chunks từ collection system_book_chunks cho buổi phỏng vấn.
-    - Lấy ngẫu nhiên tối đa 50 chunk theo book_id.
+    - Lấy ngẫu nhiên tối đa 50 chunk theo book_id (string).
     - Sau đó chọn k chunk theo vòng tròn, update cursor trong interview.
     """
-    # Nếu chưa có danh sách chunk_ids thì lấy từ DB
     if not interview.get("chunk_ids"):
         all_chunks = list(system_chunks_col.find(
             {"bookId": book_id},
@@ -131,10 +130,9 @@ def select_chunks_round_robin_by_system_syllabus(
 
         # Lấy ngẫu nhiên tối đa 50 chunk
         sampled = random.sample(all_chunks, min(50, len(all_chunks)))
-        interview["chunk_ids"] = [str(c["_id"]) for c in sampled]
+        interview["chunk_ids"] = [c["_id"] for c in sampled]
         interview["cursor"] = 0
 
-    # Thực hiện chọn theo vòng tròn
     chunk_ids = interview["chunk_ids"]
     cursor = interview.get("cursor", 0)
     n = len(chunk_ids)
