@@ -42,6 +42,17 @@ def load_texts_by_chunk_ids(chunk_ids):
             continue
     return texts
 
+def load_texts_by_system_chunk_ids(chunk_ids):
+    texts = []
+    for id in chunk_ids:
+        try:
+            doc = system_chunks_col.find_one({"_id": id})
+            if doc:
+                texts.append({"cid": id, "text": doc.get("text", "")})
+        except Exception:
+            continue
+    return texts
+
 
 def to_iso(dt):
     if isinstance(dt, datetime.datetime):
@@ -461,7 +472,7 @@ def next_question_system():
     if not selected_chunk_ids:
         return jsonify({"error": "No valid chunks found"}), 404
 
-    texts = load_texts_by_chunk_ids(selected_chunk_ids)
+    texts = load_texts_by_system_chunk_ids(selected_chunk_ids)
     if not texts:
         return jsonify({"error": "No valid chunks found"}), 404
 
