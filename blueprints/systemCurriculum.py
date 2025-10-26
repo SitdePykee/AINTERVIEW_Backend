@@ -95,3 +95,65 @@ def get_curriculum():
     except Exception as e:
         return jsonify({"error": f"Cannot fetch data: {str(e)}"}), 500
 
+import requests
+
+book_embeddings_col = db['bookEmbeddings']
+
+@curriculum_bp.route('/save-book-embedding', methods=['POST'])
+def save_book_embedding():
+    try:
+        data = request.get_json()
+        book_id = data.get("bookId")
+
+        if not book_id:
+            return jsonify({"error": "Missing bookId"}), 400
+
+        # Gọi API embedding
+        url = "https://qc.neureader.net/v2/readie/embedding"
+        headers = {
+            "Authorization": "Bearer 9xjN6qbrA4givxIMf6OydzUZiFRXy06leV5pLFAGApWsHNoQ",
+            "Content-Type": "application/json"
+        }
+        body = {
+            "bookId": book_id,
+            "pageNumber": 0,
+            "pageSize": 10000000
+        }
+
+        response = requests.post(url, headers=headers, json=body)
+        if response.status_code != 200:
+            return jsonify({"error": f"Embedding API failed: {response.status_code}"}), 500
+
+        json_data = response.json()
+        embeddings = json_data.get("data", {}).get("embeddings", [])
+
+        if not embeddings:
+            return jsonify({"error": "No embeddings returned from API"}), 404
+
+        # Gộp tất cả text từ các embeddings
+        full_text = "\n\n".join([e.get("text", "") for e in embeddings]).strip()
+
+        # Lưu vào MongoDB (nếu bookId đã tồn tại thì cập nhật)
+        existing = book_embeddings_col.find_one({"bookId": book_id})
+        if existing:
+            book_embeddings_col.update_one(
+                {"bookId": book_id},
+                {"$set": {"text": full_text}}
+            )
+            action = "updated"
+        else:
+            book_embeddings_col.insert_one({
+                "_id": str(uuid.uuid4()),
+                "bookId": book_id,
+                "text": full_text
+            })
+            action = "inserted"
+
+        return jsonify({
+            "message": f"Book embedding {action} successfully",
+            "bookId": book_id,
+            "text_length": len(full_text)
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
