@@ -6,11 +6,16 @@ import uuid
 import io
 from bson import ObjectId
 import math
+import requests
+
+from utils.chunking import chunk_syllabus
 
 curriculum_bp = Blueprint('curriculum', __name__)
 mongo_client = MongoClient(MONGO_URI)
 db = mongo_client[MONGO_DB_NAME]
 system_curriculum_col = db['systemCurriculum']
+book_embeddings_col = db['bookEmbeddings']
+system_book_chunks_col = db['system_book_chunks']
 
 
 @curriculum_bp.route('/upload-curriculum-excel', methods=['POST'])
@@ -94,10 +99,6 @@ def get_curriculum():
 
     except Exception as e:
         return jsonify({"error": f"Cannot fetch data: {str(e)}"}), 500
-
-import requests
-
-book_embeddings_col = db['bookEmbeddings']
 
 @curriculum_bp.route('/save-book-embedding', methods=['POST'])
 def save_book_embedding():
@@ -189,6 +190,38 @@ def get_book_text(book_id):
         return jsonify({
             "bookId": book_id,
             "text": doc.get("text", "")
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@curriculum_bp.route('/chunk-book/<book_id>', methods=['POST'])
+def chunk_book(book_id):
+    try:
+        doc = book_embeddings_col.find_one({"bookId": book_id})
+        if not doc:
+            return jsonify({"error": "Book not found"}), 404
+
+        text = doc.get("text", "")
+        if not text.strip():
+            return jsonify({"error": "Empty text"}), 400
+
+        chunks = chunk_syllabus(text)
+
+        system_book_chunks_col.delete_many({"bookId": book_id})
+        for c in chunks:
+            system_book_chunks_col.insert_one({
+                "_id": str(uuid.uuid4()),
+                "bookId": book_id,
+                "chapter": c.get("chapter"),
+                "content": c.get("content"),
+                "start_offset": c.get("start_offset"),
+                "end_offset": c.get("end_offset")
+            })
+
+        return jsonify({
+            "bookId": book_id,
+            "chunk_count": len(chunks)
         }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
