@@ -470,11 +470,11 @@ def next_question_system():
     syllabus_id = db_interview.get("syllabus_id")
     selected_chunk_ids = select_chunks_round_robin_by_system_syllabus(syllabus_id, interview, k=3)
     if not selected_chunk_ids:
-        return jsonify({"error": "No valid chunks found"}), 404
+        return jsonify({"error": "No valid chunks found"}), 1
 
     texts = load_texts_by_system_chunk_ids(selected_chunk_ids)
     if not texts:
-        return jsonify({"error": "No valid chunks found"}), 404
+        return jsonify({"error": "No valid chunks found"}), 2
 
     context_formatted = "\n\n".join([f"[{t['cid']}]: {t['text']}" for t in texts])
     summary = interview.get("summary", "")
