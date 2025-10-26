@@ -104,7 +104,7 @@ def select_chunks_round_robin_by_syllabus(
     n = len(chunk_ids)
     selected = [chunk_ids[(cursor + i) % n] for i in range(k)]
     interview["cursor"] = (cursor + k) % n
-    INTERVIEW_CACHE[interview["session_id"]] = interview
+    INTERVIEW_CACHE[interview["id"]] = interview
 
     return selected
 
@@ -142,7 +142,7 @@ def select_chunks_round_robin_by_system_syllabus(
     selected = [chunk_ids[(cursor + i) % n] for i in range(k)]
     interview["cursor"] = (cursor + k) % n
 
-    INTERVIEW_CACHE[interview["session_id"]] = interview
+    INTERVIEW_CACHE[interview["id"]] = interview
 
     return selected
 
