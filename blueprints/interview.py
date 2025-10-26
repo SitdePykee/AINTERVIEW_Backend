@@ -80,33 +80,44 @@ def select_chunks_round_robin_by_syllabus(
     k: int = 3
 ) -> List[str]:
     """
-    Chọn vòng tròn k chunks cho buổi phỏng vấn.
-    - Lấy 30 chunk ngẫu nhiên từ DB theo syllabus_id (trong metadata).
-    - Sau đó chọn k chunk theo vòng tròn, update cursor trong interview.
+    Chọn vòng tròn k chunks cho buổi phỏng vấn, đảm bảo mỗi lần lấy 3 chunk
+    khác với lượt trước.
     """
     if not interview.get("chunk_ids"):
-        # Lọc chunk dựa vào metadata.syllabus_id (string)
+        # Lấy chunk từ DB
         all_chunks = list(chunks_col.find(
             {"metadata.syllabus_id": syllabus_id},
             {"_id": 1}
         ))
-
         if not all_chunks:
             return []
-
-        # Lấy ngẫu nhiên tối đa 50 chunk
+        # Random max 50 chunk
         sampled = random.sample(all_chunks, min(50, len(all_chunks)))
         interview["chunk_ids"] = [str(c["_id"]) for c in sampled]
+        interview["cursor"] = 0
+        interview["last_selected"] = []
 
-    # Round-robin chọn k chunk
     chunk_ids = interview["chunk_ids"]
     cursor = interview.get("cursor", 0)
     n = len(chunk_ids)
-    selected = [chunk_ids[(cursor + i) % n] for i in range(k)]
-    interview["cursor"] = (cursor + k) % n
+
+    # Lấy k chunk liên tục không trùng với last_selected
+    selected = []
+    attempts = 0
+    while len(selected) < k and attempts < n*2:
+        idx = (cursor + attempts) % n
+        cid = chunk_ids[idx]
+        if cid not in interview.get("last_selected", []):
+            selected.append(cid)
+        attempts += 1
+
+    # Update cursor và last_selected
+    interview["cursor"] = (cursor + len(selected)) % n
+    interview["last_selected"] = selected
     INTERVIEW_CACHE[interview["id"]] = interview
 
     return selected
+
 
 from typing import List
 
@@ -116,32 +127,37 @@ def select_chunks_round_robin_by_system_syllabus(
     k: int = 3
 ) -> List[str]:
     """
-    Chọn vòng tròn k chunks từ collection system_book_chunks cho buổi phỏng vấn.
-    - Lấy ngẫu nhiên tối đa 50 chunk theo book_id.
-    - Sau đó chọn k chunk theo vòng tròn, update cursor trong interview.
+    Chọn vòng tròn k chunks từ collection system_book_chunks, đảm bảo mỗi lần
+    lấy khác với lượt trước.
     """
     if not interview.get("chunk_ids"):
         all_chunks = list(system_chunks_col.find(
             {"bookId": book_id},
             {"_id": 1}
         ))
-
         if not all_chunks:
             return []
-
         sampled = random.sample(all_chunks, min(50, len(all_chunks)))
         interview["chunk_ids"] = [c["_id"] for c in sampled]
         interview["cursor"] = 0
+        interview["last_selected"] = []
 
     chunk_ids = interview["chunk_ids"]
     cursor = interview.get("cursor", 0)
     n = len(chunk_ids)
-    if n == 0:
-        return []
 
-    selected = [chunk_ids[(cursor + i) % n] for i in range(k)]
-    interview["cursor"] = (cursor + k) % n
+    selected = []
+    attempts = 0
+    while len(selected) < k and attempts < n*2:
+        idx = (cursor + attempts) % n
+        cid = chunk_ids[idx]
+        if cid not in interview.get("last_selected", []):
+            selected.append(cid)
+        attempts += 1
 
+    # Update cursor và last_selected
+    interview["cursor"] = (cursor + len(selected)) % n
+    interview["last_selected"] = selected
     INTERVIEW_CACHE[interview["id"]] = interview
 
     return selected
