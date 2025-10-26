@@ -74,94 +74,40 @@ def parse_iso_to_utc(dt_str: str):
         print("parse_iso_to_utc error:", e, dt_str)
         return None
 
-def select_chunks_round_robin_by_syllabus(
-    syllabus_id: str,
-    interview: dict,
-    k: int = 3
-) -> List[str]:
+
+def select_chunks_randomly_by_syllabus(syllabus_id: str, k: int = 3) -> list[str]:
     """
-    Chọn vòng tròn k chunks cho buổi phỏng vấn, đảm bảo mỗi lần lấy 3 chunk
-    khác với lượt trước.
+    Lấy ngẫu nhiên k chunk khác nhau từ collection chunks theo syllabus_id.
     """
-    if not interview.get("chunk_ids"):
-        # Lấy chunk từ DB
-        all_chunks = list(chunks_col.find(
-            {"metadata.syllabus_id": syllabus_id},
-            {"_id": 1}
-        ))
-        if not all_chunks:
-            return []
-        # Random max 50 chunk
-        sampled = random.sample(all_chunks, min(50, len(all_chunks)))
-        interview["chunk_ids"] = [str(c["_id"]) for c in sampled]
-        interview["cursor"] = 0
-        interview["last_selected"] = []
+    all_chunks = list(chunks_col.find(
+        {"metadata.syllabus_id": syllabus_id},
+        {"_id": 1}
+    ))
 
-    chunk_ids = interview["chunk_ids"]
-    cursor = interview.get("cursor", 0)
-    n = len(chunk_ids)
+    if not all_chunks:
+        return []
 
-    # Lấy k chunk liên tục không trùng với last_selected
-    selected = []
-    attempts = 0
-    while len(selected) < k and attempts < n*2:
-        idx = (cursor + attempts) % n
-        cid = chunk_ids[idx]
-        if cid not in interview.get("last_selected", []):
-            selected.append(cid)
-        attempts += 1
-
-    # Update cursor và last_selected
-    interview["cursor"] = (cursor + len(selected)) % n
-    interview["last_selected"] = selected
-    INTERVIEW_CACHE[interview["id"]] = interview
-
-    return selected
+    # Lấy ngẫu nhiên k chunk khác nhau
+    sampled = random.sample(all_chunks, min(k, len(all_chunks)))
+    return [str(c["_id"]) for c in sampled]
 
 
 from typing import List
 
-def select_chunks_round_robin_by_system_syllabus(
-    book_id: str,
-    interview: dict,
-    k: int = 3
-) -> List[str]:
+def select_chunks_randomly_by_system_syllabus(book_id: str, k: int = 3) -> list[str]:
     """
-    Chọn vòng tròn k chunks từ collection system_book_chunks, đảm bảo mỗi lần
-    lấy khác với lượt trước.
+    Lấy ngẫu nhiên k chunk khác nhau từ collection system_book_chunks theo book_id.
     """
-    if not interview.get("chunk_ids"):
-        all_chunks = list(system_chunks_col.find(
-            {"bookId": book_id},
-            {"_id": 1}
-        ))
-        if not all_chunks:
-            return []
-        sampled = random.sample(all_chunks, min(50, len(all_chunks)))
-        interview["chunk_ids"] = [c["_id"] for c in sampled]
-        interview["cursor"] = 0
-        interview["last_selected"] = []
+    all_chunks = list(system_chunks_col.find(
+        {"bookId": book_id},
+        {"_id": 1}
+    ))
 
-    chunk_ids = interview["chunk_ids"]
-    cursor = interview.get("cursor", 0)
-    n = len(chunk_ids)
+    if not all_chunks:
+        return []
 
-    selected = []
-    attempts = 0
-    while len(selected) < k and attempts < n*2:
-        idx = (cursor + attempts) % n
-        cid = chunk_ids[idx]
-        if cid not in interview.get("last_selected", []):
-            selected.append(cid)
-        attempts += 1
-
-    # Update cursor và last_selected
-    interview["cursor"] = (cursor + len(selected)) % n
-    interview["last_selected"] = selected
-    INTERVIEW_CACHE[interview["id"]] = interview
-
-    return selected
-
+    sampled = random.sample(all_chunks, min(k, len(all_chunks)))
+    return [c["_id"] for c in sampled]
 
 
 def prompt_generate_question_with_session(
@@ -421,7 +367,7 @@ def next_question():
     # --------------------
 
     syllabus_id = db_interview.get("syllabus_id")
-    selected_chunk_ids = select_chunks_round_robin_by_syllabus(syllabus_id, interview, k=3)
+    selected_chunk_ids = select_chunks_randomly_by_syllabus(syllabus_id, 3)
     if not selected_chunk_ids:
         return jsonify({"error": "No valid chunks found"}), 404
 
@@ -485,7 +431,7 @@ def next_question_system():
     # --------------------
 
     syllabus_id = db_interview.get("syllabus_id")
-    selected_chunk_ids = select_chunks_round_robin_by_system_syllabus(syllabus_id, interview, k=3)
+    selected_chunk_ids = select_chunks_randomly_by_system_syllabus(syllabus_id, 3)
     if not selected_chunk_ids:
         return jsonify({"error": "No valid chunks found"}), 404
 
