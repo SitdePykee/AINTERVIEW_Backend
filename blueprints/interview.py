@@ -255,6 +255,7 @@ def create_interview():
     question_type = data.get("question_type")
     additional = data.get("additional")
     available_at = data.get("available_at")
+    isSystemCurriculum = data.get("is_system_curriculum")
     if available_at:
         if isinstance(available_at, str):
             available_at = parse_iso_to_utc(available_at)
@@ -277,6 +278,8 @@ def create_interview():
         missing_fields.append("question_type")
     if additional is None:
         missing_fields.append("additional")
+    if isSystemCurriculum is None:
+        missing_fields.append("isSystemCurriculum")
 
     if missing_fields:
         return jsonify({"error": f"Missing fields: {', '.join(missing_fields)}"}), 400
@@ -294,6 +297,7 @@ def create_interview():
         "additional": additional,
         "status": "Unavailable",
         "available_at": available_at,
+        "isSystemCurriculum": isSystemCurriculum,
         "created_at": now_utc()
     }
     interviews_col.insert_one(interview_doc)
