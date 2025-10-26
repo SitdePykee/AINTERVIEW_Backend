@@ -94,6 +94,7 @@ def get_curriculum():
 
     except Exception as e:
         return jsonify({"error": f"Cannot fetch data: {str(e)}"}), 500
+
 import requests
 
 book_embeddings_col = db['bookEmbeddings']
@@ -106,7 +107,6 @@ def save_book_embedding():
 
         if not book_id:
             return jsonify({"error": "Missing bookId"}), 400
-
 
         login_url = "https://qc.neureader.net/v2/auth/login"
         login_body = {
@@ -122,15 +122,17 @@ def save_book_embedding():
             }), 500
 
         token_data = login_response.json()
-        token = token_data.get("data", {}).get("token")
+        access_token = token_data.get("data", {}).get("accessToken")
 
-        if not token:
-            return jsonify({"error": "No token received from login"}), 500
-
+        if not access_token:
+            return jsonify({
+                "error": "No accessToken found in login response",
+                "login_response": token_data
+            }), 500
 
         embedding_url = "https://qc.neureader.net/v2/readie/embedding"
         headers = {
-            "Authorization": f"Bearer {token}",
+            "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json"
         }
         body = {
@@ -152,9 +154,7 @@ def save_book_embedding():
         if not embeddings:
             return jsonify({"error": "No embeddings returned from API"}), 404
 
-
         full_text = "\n\n".join([e.get("text", "") for e in embeddings]).strip()
-
 
         existing = book_embeddings_col.find_one({"bookId": book_id})
         if existing:
