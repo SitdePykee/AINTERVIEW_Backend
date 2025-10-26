@@ -104,6 +104,7 @@ def select_chunks_round_robin_by_syllabus(
     n = len(chunk_ids)
     selected = [chunk_ids[(cursor + i) % n] for i in range(k)]
     interview["cursor"] = (cursor + k) % n
+    INTERVIEW_CACHE[interview["session_id"]] = interview
 
     return selected
 
@@ -116,7 +117,7 @@ def select_chunks_round_robin_by_system_syllabus(
 ) -> List[str]:
     """
     Chọn vòng tròn k chunks từ collection system_book_chunks cho buổi phỏng vấn.
-    - Lấy ngẫu nhiên tối đa 50 chunk theo book_id (string).
+    - Lấy ngẫu nhiên tối đa 50 chunk theo book_id.
     - Sau đó chọn k chunk theo vòng tròn, update cursor trong interview.
     """
     if not interview.get("chunk_ids"):
@@ -128,7 +129,6 @@ def select_chunks_round_robin_by_system_syllabus(
         if not all_chunks:
             return []
 
-        # Lấy ngẫu nhiên tối đa 50 chunk
         sampled = random.sample(all_chunks, min(50, len(all_chunks)))
         interview["chunk_ids"] = [c["_id"] for c in sampled]
         interview["cursor"] = 0
@@ -142,7 +142,10 @@ def select_chunks_round_robin_by_system_syllabus(
     selected = [chunk_ids[(cursor + i) % n] for i in range(k)]
     interview["cursor"] = (cursor + k) % n
 
+    INTERVIEW_CACHE[interview["session_id"]] = interview
+
     return selected
+
 
 
 def prompt_generate_question_with_session(
