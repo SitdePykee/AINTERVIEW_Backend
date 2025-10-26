@@ -94,7 +94,6 @@ def get_curriculum():
 
     except Exception as e:
         return jsonify({"error": f"Cannot fetch data: {str(e)}"}), 500
-
 import requests
 
 book_embeddings_col = db['bookEmbeddings']
@@ -108,10 +107,30 @@ def save_book_embedding():
         if not book_id:
             return jsonify({"error": "Missing bookId"}), 400
 
-        # Gọi API embedding
-        url = "https://qc.neureader.net/v2/readie/embedding"
+
+        login_url = "https://qc.neureader.net/v2/auth/login"
+        login_body = {
+            "email": "11223735",
+            "password": "000000"
+        }
+
+        login_response = requests.post(login_url, json=login_body)
+        if login_response.status_code != 200:
+            return jsonify({
+                "error": f"Login failed: {login_response.status_code}",
+                "details": login_response.text
+            }), 500
+
+        token_data = login_response.json()
+        token = token_data.get("data", {}).get("token")
+
+        if not token:
+            return jsonify({"error": "No token received from login"}), 500
+
+
+        embedding_url = "https://qc.neureader.net/v2/readie/embedding"
         headers = {
-            "Authorization": "Bearer 9xjN6qbrA4givxIMf6OydzUZiFRXy06leV5pLFAGApWsHNoQ",
+            "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
         }
         body = {
@@ -120,20 +139,23 @@ def save_book_embedding():
             "pageSize": 10000000
         }
 
-        response = requests.post(url, headers=headers, json=body)
-        if response.status_code != 200:
-            return jsonify({"error": f"Embedding API failed: {response.status_code}"}), 500
+        embed_response = requests.post(embedding_url, headers=headers, json=body)
+        if embed_response.status_code != 200:
+            return jsonify({
+                "error": f"Embedding API failed: {embed_response.status_code}",
+                "details": embed_response.text
+            }), embed_response.status_code
 
-        json_data = response.json()
+        json_data = embed_response.json()
         embeddings = json_data.get("data", {}).get("embeddings", [])
 
         if not embeddings:
             return jsonify({"error": "No embeddings returned from API"}), 404
 
-        # Gộp tất cả text từ các embeddings
+
         full_text = "\n\n".join([e.get("text", "") for e in embeddings]).strip()
 
-        # Lưu vào MongoDB (nếu bookId đã tồn tại thì cập nhật)
+
         existing = book_embeddings_col.find_one({"bookId": book_id})
         if existing:
             book_embeddings_col.update_one(
