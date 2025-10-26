@@ -421,7 +421,7 @@ def next_question():
     return jsonify(obj), 200
 
 @interview_bp.route("/next_question_system", methods=["POST"])
-def next_question():
+def next_question_system():
     data = request.get_json(force=True)
     session_id = data.get("session_id")
 
