@@ -15,6 +15,7 @@ from utils.summarize import summarize
 mongo_client = MongoClient(MONGO_URI)
 db = mongo_client[MONGO_DB_NAME]
 chunks_col = db["chunks"]
+system_chunks_col = db["system_book_chunks"]
 interviews_col = db["interviews"]
 interview_session_col = db["interview_session"]
 users_col = db["users"]
@@ -95,6 +96,45 @@ def select_chunks_round_robin_by_syllabus(
 
     return selected
 
+from typing import List
+
+def select_chunks_round_robin_by_system_syllabus(
+    book_id: str,
+    interview: dict,
+    k: int = 3
+) -> List[str]:
+    """
+    Chọn vòng tròn k chunks từ collection system_book_chunks cho buổi phỏng vấn.
+    - Lấy ngẫu nhiên tối đa 50 chunk theo book_id.
+    - Sau đó chọn k chunk theo vòng tròn, update cursor trong interview.
+    """
+    # Nếu chưa có danh sách chunk_ids thì lấy từ DB
+    if not interview.get("chunk_ids"):
+        all_chunks = list(system_chunks_col.find(
+            {"bookId": book_id},
+            {"_id": 1}
+        ))
+
+        if not all_chunks:
+            return []
+
+        # Lấy ngẫu nhiên tối đa 50 chunk
+        sampled = random.sample(all_chunks, min(50, len(all_chunks)))
+        interview["chunk_ids"] = [str(c["_id"]) for c in sampled]
+        interview["cursor"] = 0
+
+    # Thực hiện chọn theo vòng tròn
+    chunk_ids = interview["chunk_ids"]
+    cursor = interview.get("cursor", 0)
+    n = len(chunk_ids)
+    if n == 0:
+        return []
+
+    selected = [chunk_ids[(cursor + i) % n] for i in range(k)]
+    interview["cursor"] = (cursor + k) % n
+
+    return selected
+
 
 def prompt_generate_question_with_session(
     summary: str,
@@ -145,7 +185,7 @@ Quy tắc:
 - Không copy toàn bộ ví dụ, dữ liệu, hay lời giải có sẵn trong chunk.
 - Ngôn ngữ thân thiện, giống người phỏng vấn nói trực tiếp với người được phỏng vấn
 - Người phỏng vấn không được đọc tài liệu mà AI được nhận, không sinh ra những câu hỏi dựa trên ví dụ cụ thể trong văn bản được nhận
-- Không hỏi liên tục về một nội dung quá 3 câu
+- Không hỏi liên tục về một nội dung quá 3 câu, nội dung các câu hỏi trước xem ở recent qa
 """.strip()
 
 def prompt_generate_question_from_system_curriculum_with_session(
@@ -197,7 +237,7 @@ Quy tắc:
 - Không copy toàn bộ ví dụ, dữ liệu, hay lời giải có sẵn trong chunk.
 - Ngôn ngữ thân thiện, giống người phỏng vấn nói trực tiếp với người được phỏng vấn
 - Người phỏng vấn không được đọc tài liệu mà AI được nhận, không sinh ra những câu hỏi dựa trên ví dụ cụ thể trong văn bản được nhận
-- Không hỏi liên tục về một nội dung quá 3 câu
+- Không hỏi liên tục về một nội dung quá 3 câu, nội dung các câu hỏi trước xem ở recent qa
 """.strip()
 
 # ==== Routes ====
@@ -380,7 +420,69 @@ def next_question():
 
     return jsonify(obj), 200
 
+@interview_bp.route("/next_question_system", methods=["POST"])
+def next_question():
+    data = request.get_json(force=True)
+    session_id = data.get("session_id")
 
+    if not session_id:
+        return jsonify({"error": "session_id is required"}), 400
+
+    interview = INTERVIEW_CACHE.get(session_id)
+    if not interview:
+        return jsonify({"error": "Interview not started or not in cache"}), 404
+
+    interview_id = interview.get("interview_id")
+    db_interview = interviews_col.find_one({"_id": interview_id})
+    if not db_interview:
+        return jsonify({"error": "Interview not found in DB"}), 404
+
+    difficulty = db_interview.get("difficulty")
+    question_type = db_interview.get("questionType")
+    additional = db_interview.get("additional", "")
+
+    # --------------------
+    # Chọn ngẫu nhiên 1 loại question_type
+    if isinstance(question_type, list) and question_type:
+        types = [random.choice(question_type)]
+    elif isinstance(question_type, str):
+        types = [question_type]
+    else:
+        types = []
+
+    # --------------------
+
+    syllabus_id = db_interview.get("syllabus_id")
+    selected_chunk_ids = select_chunks_round_robin_by_system_syllabus(syllabus_id, interview, k=3)
+    if not selected_chunk_ids:
+        return jsonify({"error": "No valid chunks found"}), 404
+
+    texts = load_texts_by_chunk_ids(selected_chunk_ids)
+    if not texts:
+        return jsonify({"error": "No valid chunks found"}), 404
+
+    context_formatted = "\n\n".join([f"[{t['cid']}]: {t['text']}" for t in texts])
+    summary = interview.get("summary", "")
+    recent_qa = interview.get("qa_log", [])[-4:]
+
+    prompt = prompt_generate_question_with_session(
+        summary=summary,
+        recent_qa=recent_qa,
+        context_formatted=context_formatted,
+        difficulty=difficulty,
+        types=types,
+        additional=additional,
+    )
+
+    try:
+        obj = call_llm_json(prompt)
+    except Exception as e:
+        if "429" in str(e) or "RATE_LIMIT_EXCEEDED" in str(e):
+            return jsonify({"error": "Rate limit exceeded. Please try again later."}), 429
+        else:
+            return jsonify({"error": "LLM error", "detail": str(e)}), 500
+
+    return jsonify(obj), 200
 
 
 @interview_bp.route("/answer", methods=["POST"])
