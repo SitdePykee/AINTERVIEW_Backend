@@ -179,3 +179,16 @@ def save_book_embedding():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@curriculum_bp.route('/get-book-text/<book_id>', methods=['GET'])
+def get_book_text(book_id):
+    try:
+        doc = book_embeddings_col.find_one({"bookId": book_id})
+        if not doc:
+            return jsonify({"error": "Book not found"}), 404
+        return jsonify({
+            "bookId": book_id,
+            "text": doc.get("text", "")
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
