@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_cors import CORS
 from blueprints.question import question_bp
 from blueprints.interview import interview_bp
 from blueprints.syllabus import syllabus_bp
@@ -9,6 +10,7 @@ from blueprints.revision import revision_bp
 
 def create_app():
     app = Flask(__name__)
+    CORS(app, resources={r"*": {"origins": "*"}})
 
     @app.route('/')
     def index():

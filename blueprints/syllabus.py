@@ -1,14 +1,10 @@
 from flask import Blueprint, request, jsonify, send_file
-from pymongo import MongoClient
-from config import MONGO_URI, MONGO_DB_NAME
 from pdfminer.high_level import extract_text
 from utils.chunking import chunk_syllabus
 import os, datetime
 import uuid
-
+from extensions.mongo import db
 syllabus_bp = Blueprint('syllabus', __name__)
-mongo_client = MongoClient(MONGO_URI)
-db = mongo_client[MONGO_DB_NAME]
 chunks_col = db['chunks']
 syllabus_col = db['syllabus']
 users_col = db['users']

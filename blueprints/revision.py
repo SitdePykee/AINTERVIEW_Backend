@@ -5,15 +5,12 @@ from typing import List, Dict
 import random
 
 from flask import Blueprint, request, jsonify
-from pymongo import MongoClient
 
-from config import MONGO_URI, MONGO_DB_NAME
 from extensions.llm import call_llm_json
 from utils.summarize import summarize
 
 # ==== MongoDB setup ====
-mongo_client = MongoClient(MONGO_URI)
-db = mongo_client[MONGO_DB_NAME]
+from extensions.mongo import db
 revisions_col = db["revisions"]
 revision_session_col = db["revision_session"]
 users_col = db["users"]

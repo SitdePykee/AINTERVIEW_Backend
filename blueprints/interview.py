@@ -5,15 +5,11 @@ from typing import List, Dict
 
 from flask import Blueprint, request, jsonify
 from bson import ObjectId
-from pymongo import MongoClient
-
-from config import MONGO_URI, MONGO_DB_NAME
 from extensions.llm import call_llm_json
 from utils.summarize import summarize
 
 # ==== MongoDB setup ====
-mongo_client = MongoClient(MONGO_URI)
-db = mongo_client[MONGO_DB_NAME]
+from extensions.mongo import db
 chunks_col = db["chunks"]
 system_chunks_col = db["system_book_chunks"]
 interviews_col = db["interviews"]

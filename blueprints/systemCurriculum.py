@@ -1,6 +1,4 @@
 from flask import Blueprint, request, jsonify
-from pymongo import MongoClient
-from config import MONGO_URI, MONGO_DB_NAME
 import pandas as pd
 import uuid
 import io
@@ -9,10 +7,9 @@ import math
 import requests
 
 from utils.chunking import chunk_syllabus
-
+from extensions.mongo import db
 curriculum_bp = Blueprint('curriculum', __name__)
-mongo_client = MongoClient(MONGO_URI)
-db = mongo_client[MONGO_DB_NAME]
+
 system_curriculum_col = db['systemCurriculum']
 book_embeddings_col = db['bookEmbeddings']
 system_book_chunks_col = db['system_book_chunks']

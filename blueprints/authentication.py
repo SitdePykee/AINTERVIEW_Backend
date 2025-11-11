@@ -1,12 +1,9 @@
 from flask import Blueprint, request, jsonify
-from pymongo import MongoClient
-from config import MONGO_URI, MONGO_DB_NAME
 import uuid
 import bcrypt
-
+from extensions.mongo import db
 auth_bp = Blueprint("auth", __name__)
-mongo_client = MongoClient(MONGO_URI)
-db = mongo_client[MONGO_DB_NAME]
+
 users_col = db["users"]
 
 # Mock session lưu token đơn giản (thực tế nên dùng Redis hoặc JWT)

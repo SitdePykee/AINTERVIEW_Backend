@@ -1,11 +1,7 @@
 from flask import Blueprint, request, jsonify
 from bson import ObjectId
-from pymongo import MongoClient
 
-from config import MONGO_URI, MONGO_DB_NAME
-
-mongo_client = MongoClient(MONGO_URI)
-db = mongo_client[MONGO_DB_NAME]
+from extensions.mongo import db
 chunks_col = db["chunks"]
 
 question_bp = Blueprint("question", __name__)
