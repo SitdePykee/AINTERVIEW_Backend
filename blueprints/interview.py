@@ -130,7 +130,10 @@ Bạn là giảng viên đang phỏng vấn sinh viên để kiểm tra. Hãy đ
 \"\"\"{context_formatted}\"\"\"
 
 Nhiệm vụ:
-Sinh ra 1 câu hỏi phỏng vấn mới dạng {type_str}, độ khó Bloom: {difficulty}, phù hợp với diễn tiến trong summary + recent Q&A.
+Sinh ra 1 câu hỏi phỏng vấn mới dạng {type_str}, độ khó Bloom: {difficulty}
+- Câu hỏi phải hoàn toàn dựa trên nội dung trong [Content] và không dùng kiến thức bên ngoài.
+- Không tạo câu hỏi tổng quát hay kiến thức phổ biến nếu chunk không nhắc tới.
+- Nếu chunk không đủ thông tin cho câu hỏi, hãy trả về `{"question": null}` thay vì “hallucinate”..
 Yêu cầu bổ sung (nếu có): {additional}
 
 Trả về JSON object:
@@ -182,7 +185,10 @@ Bạn là giảng viên đang phỏng vấn sinh viên để kiểm tra. Hãy đ
 \"\"\"{context_formatted}\"\"\"
 
 Nhiệm vụ:
-Sinh ra 1 câu hỏi phỏng vấn mới dạng {type_str}, độ khó Bloom: {difficulty}, phù hợp với diễn tiến trong summary + recent Q&A.
+Sinh ra 1 câu hỏi phỏng vấn mới dạng {type_str}, độ khó Bloom: {difficulty}
+- Câu hỏi phải hoàn toàn dựa trên nội dung trong [Content] và không dùng kiến thức bên ngoài.
+- Không tạo câu hỏi tổng quát hay kiến thức phổ biến nếu chunk không nhắc tới.
+- Nếu chunk không đủ thông tin cho câu hỏi, hãy trả về `{"question": null}` thay vì “hallucinate”..
 Yêu cầu bổ sung (nếu có): {additional}
 
 Trả về JSON object:
