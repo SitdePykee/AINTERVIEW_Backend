@@ -363,7 +363,6 @@ def next_question():
         types = []
 
     # --------------------
-
     syllabus_id = db_interview.get("syllabus_id")
     selected_chunk_ids = select_chunks_randomly_by_syllabus(syllabus_id, 3)
     if not selected_chunk_ids:
@@ -394,7 +393,11 @@ def next_question():
         else:
             return jsonify({"error": "LLM error", "detail": str(e)}), 500
 
-    return jsonify(obj), 200
+    return jsonify({
+        "result": obj,
+        "prompt": prompt
+    }), 200
+
 
 @interview_bp.route("/next_question_system", methods=["POST"])
 def next_question_system():
