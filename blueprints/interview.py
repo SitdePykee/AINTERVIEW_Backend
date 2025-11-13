@@ -73,7 +73,7 @@ def parse_iso_to_utc(dt_str: str):
         return None
 
 
-def select_chunks_randomly_by_syllabus(syllabus_id: str, k: int = 1) -> list[str]:
+def select_chunks_randomly_by_syllabus(syllabus_id: str, k: int = 3) -> list[str]:
     """
     Lấy ngẫu nhiên k chunk khác nhau từ collection chunks theo syllabus_id.
     """
@@ -92,7 +92,7 @@ def select_chunks_randomly_by_syllabus(syllabus_id: str, k: int = 1) -> list[str
 
 from typing import List
 
-def select_chunks_randomly_by_system_syllabus(book_id: str, k: int = 1) -> list[str]:
+def select_chunks_randomly_by_system_syllabus(book_id: str, k: int = 3) -> list[str]:
     """
     Lấy ngẫu nhiên k chunk khác nhau từ collection system_book_chunks theo book_id.
     """
@@ -157,7 +157,7 @@ Quy tắc:
 - Câu hỏi phải hỏi người dùng về kiến thức / áp dụng / lý giải, có thể tạo các câu hỏi tính toán dựa trên lý thuyết nhận được.
 - Ngôn ngữ thân thiện, giống người phỏng vấn nói trực tiếp với người được phỏng vấn
 - Người phỏng vấn không được đọc tài liệu mà AI được nhận, không sinh ra những câu hỏi dựa trên ví dụ cụ thể trong văn bản được nhận
-- Không hỏi liên tục về một nội dung quá 3 câu
+- Không hỏi liên tục về một nội dung quá 3 câu, không tiếp tục sinh câu hỏi từ chunk id trong Recent Q&A
 """.strip()
 
 def prompt_generate_question_from_system_curriculum_with_session(
@@ -209,7 +209,7 @@ Quy tắc:
 - Câu hỏi phải hỏi người dùng về kiến thức / áp dụng / lý giải, có thể tạo các câu hỏi tính toán dựa trên lý thuyết nhận được.
 - Ngôn ngữ thân thiện, giống người phỏng vấn nói trực tiếp với người được phỏng vấn
 - Người phỏng vấn không được đọc tài liệu mà AI được nhận, không sinh ra những câu hỏi dựa trên ví dụ cụ thể trong văn bản được nhận
-- Không hỏi liên tục về một nội dung quá 3 câu
+- Không hỏi liên tục về một nội dung quá 3 câu, không tiếp tục sinh câu hỏi từ chunk id trong  Recent Q&A
 """.strip()
 
 # ==== Routes ====
