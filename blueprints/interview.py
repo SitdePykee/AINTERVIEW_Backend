@@ -1,6 +1,7 @@
 import datetime
 import json
 import uuid
+import time
 from typing import List, Dict
 
 from flask import Blueprint, request, jsonify
@@ -83,7 +84,7 @@ def select_chunks_randomly_by_syllabus(syllabus_id: str, k: int = 3) -> list[str
     if not all_chunks:
         return []
 
-    # Lấy ngẫu nhiên k chunk khác nhau
+    random.seed(time.time_ns())
     sampled = random.sample(all_chunks, min(k, len(all_chunks)))
     return [str(c["_id"]) for c in sampled]
 
@@ -101,7 +102,7 @@ def select_chunks_randomly_by_system_syllabus(book_id: str, k: int = 3) -> list[
 
     if not all_chunks:
         return []
-
+    random.seed(time.time_ns())
     sampled = random.sample(all_chunks, min(k, len(all_chunks)))
     return [c["_id"] for c in sampled]
 
