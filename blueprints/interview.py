@@ -4,6 +4,7 @@ import uuid
 import time
 from typing import List, Dict
 
+
 from flask import Blueprint, request, jsonify
 from bson import ObjectId
 from extensions.llm import call_llm_json
@@ -72,7 +73,7 @@ def parse_iso_to_utc(dt_str: str):
         return None
 
 
-def select_chunks_randomly_by_syllabus(syllabus_id: str, k: int = 3) -> list[str]:
+def select_chunks_randomly_by_syllabus(syllabus_id: str, k: int = 1) -> list[str]:
     """
     Lấy ngẫu nhiên k chunk khác nhau từ collection chunks theo syllabus_id.
     """
@@ -91,7 +92,7 @@ def select_chunks_randomly_by_syllabus(syllabus_id: str, k: int = 3) -> list[str
 
 from typing import List
 
-def select_chunks_randomly_by_system_syllabus(book_id: str, k: int = 3) -> list[str]:
+def select_chunks_randomly_by_system_syllabus(book_id: str, k: int = 1) -> list[str]:
     """
     Lấy ngẫu nhiên k chunk khác nhau từ collection system_book_chunks theo book_id.
     """
@@ -150,7 +151,6 @@ Trả về JSON object:
 }}
 
 Quy tắc:
-- Không lặp lại ý/câu hỏi đã hỏi gần đây trừ khi follow-up có chủ đích.
 - Nếu question_type != "multiple_choice" thì bỏ trường "options".
 - Không sinh những câu hỏi "Theo tài liệu nhận được", "Dựa trên ví dụ" hoặc tương tự
 - Chỉ trả JSON thuần, không thêm bất kì gì khác, đặc biệt là không markdown code block (```json ... ```), không sử dụng Latex.
@@ -203,7 +203,6 @@ Trả về JSON object:
 }}
 
 Quy tắc:
-- Không lặp lại ý/câu hỏi đã hỏi gần đây trừ khi follow-up có chủ đích.
 - Nếu question_type != "multiple_choice" thì bỏ trường "options".
 - Không sinh những câu hỏi "Theo tài liệu nhận được", "Dựa trên ví dụ" hoặc tương tự
 - Chỉ trả JSON thuần, không thêm bất kì gì khác, đặc biệt là không markdown code block (```json ... ```), không sử dụng Latex.
