@@ -59,7 +59,6 @@ def upload_syllabus_pdf():
         "text": item["content"],
         "metadata": {
             "syllabus_id": syllabus_id,
-            "chapter": item["chapter"],
             "start_offset": item["start_offset"],
             "end_offset": item["end_offset"]
         }
