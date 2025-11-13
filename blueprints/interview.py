@@ -134,7 +134,6 @@ Nhiệm vụ:
 Sinh ra 1 câu hỏi phỏng vấn mới dạng {type_str}, độ khó Bloom: {difficulty}
 - Câu hỏi phải hoàn toàn dựa trên nội dung trong [Content] và không dùng kiến thức bên ngoài.
 - Không tạo câu hỏi tổng quát hay kiến thức phổ biến nếu chunk không nhắc tới.
-- Nếu chunk không đủ thông tin cho câu hỏi, hãy trả về `{"question": null}` thay vì “hallucinate”..
 Yêu cầu bổ sung (nếu có): {additional}
 
 Trả về JSON object:
@@ -156,10 +155,9 @@ Quy tắc:
 - Không sinh những câu hỏi "Theo tài liệu nhận được", "Dựa trên ví dụ" hoặc tương tự
 - Chỉ trả JSON thuần, không thêm bất kì gì khác, đặc biệt là không markdown code block (```json ... ```), không sử dụng Latex.
 - Câu hỏi phải hỏi người dùng về kiến thức / áp dụng / lý giải, có thể tạo các câu hỏi tính toán dựa trên lý thuyết nhận được.
-- Không copy toàn bộ ví dụ, dữ liệu, hay lời giải có sẵn trong chunk.
 - Ngôn ngữ thân thiện, giống người phỏng vấn nói trực tiếp với người được phỏng vấn
 - Người phỏng vấn không được đọc tài liệu mà AI được nhận, không sinh ra những câu hỏi dựa trên ví dụ cụ thể trong văn bản được nhận
-- Không hỏi liên tục về một nội dung quá 3 câu, nội dung các câu hỏi trước xem ở recent qa
+- Không hỏi liên tục về một nội dung quá 3 câu
 """.strip()
 
 def prompt_generate_question_from_system_curriculum_with_session(
@@ -189,7 +187,6 @@ Nhiệm vụ:
 Sinh ra 1 câu hỏi phỏng vấn mới dạng {type_str}, độ khó Bloom: {difficulty}
 - Câu hỏi phải hoàn toàn dựa trên nội dung trong [Content] và không dùng kiến thức bên ngoài.
 - Không tạo câu hỏi tổng quát hay kiến thức phổ biến nếu chunk không nhắc tới.
-- Nếu chunk không đủ thông tin cho câu hỏi, hãy trả về `{"question": null}` thay vì “hallucinate”..
 Yêu cầu bổ sung (nếu có): {additional}
 
 Trả về JSON object:
@@ -211,10 +208,9 @@ Quy tắc:
 - Không sinh những câu hỏi "Theo tài liệu nhận được", "Dựa trên ví dụ" hoặc tương tự
 - Chỉ trả JSON thuần, không thêm bất kì gì khác, đặc biệt là không markdown code block (```json ... ```), không sử dụng Latex.
 - Câu hỏi phải hỏi người dùng về kiến thức / áp dụng / lý giải, có thể tạo các câu hỏi tính toán dựa trên lý thuyết nhận được.
-- Không copy toàn bộ ví dụ, dữ liệu, hay lời giải có sẵn trong chunk.
 - Ngôn ngữ thân thiện, giống người phỏng vấn nói trực tiếp với người được phỏng vấn
 - Người phỏng vấn không được đọc tài liệu mà AI được nhận, không sinh ra những câu hỏi dựa trên ví dụ cụ thể trong văn bản được nhận
-- Không hỏi liên tục về một nội dung quá 3 câu, nội dung các câu hỏi trước xem ở recent qa
+- Không hỏi liên tục về một nội dung quá 3 câu
 """.strip()
 
 # ==== Routes ====
