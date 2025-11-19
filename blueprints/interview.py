@@ -187,7 +187,6 @@ Trả về JSON object:
     "start": "None",  
     "end": "None"     
   }}
-  "prompt": ""  # Bản sao của prompt nhận được, trong bản sao không có trường này để tránh loop
 }}
 
 Quy tắc:
@@ -440,7 +439,7 @@ def next_question_system():
         difficulty=difficulty,
         types=types,
         additional=additional,
-        subject=subject,
+        subject=subject["title"],
     )
 
     try:
