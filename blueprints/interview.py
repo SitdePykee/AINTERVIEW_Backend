@@ -165,14 +165,14 @@ def prompt_generate_question_from_system_curriculum_with_session(
     recent_qa_str = json.dumps(recent_qa, ensure_ascii=False, indent=2)
 
     return f"""
-Bạn là giảng viên đang phỏng vấn sinh viên để kiểm tra về {subject}. Hãy đọc thông tin buổi phỏng vấn sau:
+Bạn là giảng viên đang phỏng vấn sinh viên để kiểm tra kiến thức. Chỉ bạn được nhận {subject} Hãy đọc thông tin buổi phỏng vấn sau:
 
 [Content]
 \"\"\"{context_formatted}\"\"\"
 
 Nhiệm vụ:
 Sinh ra 1 câu hỏi phỏng vấn mới dạng {type_str}, độ khó Bloom: {difficulty}
-- Câu hỏi phải hoàn toàn dựa trên nội dung trong [Content], liên quan đến {subject} và không dùng kiến thức bên ngoài.
+- Câu hỏi phải hoàn toàn dựa trên nội dung trong [Content], liên quan đến môn học trong {subject} và không dùng kiến thức bên ngoài.
 - Không tạo câu hỏi tổng quát hay kiến thức phổ biến nếu chunk không nhắc tới.
 Yêu cầu bổ sung (nếu có): {additional}
 
@@ -183,7 +183,7 @@ Trả về JSON object:
   "answer": "...",
   "options": [...],  # chỉ nếu question_type = "multiple_choice"
   "source": {{
-    "chunk_id": "None",
+    "chunk_id": "",
     "start": "None",  
     "end": "None"     
   }}
