@@ -187,6 +187,7 @@ Trả về JSON object:
     "start": "None",  
     "end": "None"     
   }}
+  "prompt": ""  # Bản sao của prompt nhận được, trong bản sao không có trường này để tránh loop
 }}
 
 Quy tắc:
