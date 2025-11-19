@@ -123,7 +123,7 @@ Bạn là giảng viên đang phỏng vấn sinh viên để kiểm tra. Hãy đ
 [Session Summary - tóm tắt tiến trình tới hiện tại]
 {summary}
 
-[Recent Q&A - vài lượt gần nhất]
+[Recent Q&A - vài lượt gần nhất - KHÔNG SINH CÂU HỎI DỰA TRÊN THÔNG TIN TRONG NÀY]
 {recent_qa_str}
 
 [Context chunks (kèm chunk_id)]
@@ -156,6 +156,7 @@ Quy tắc:
 - Ngôn ngữ thân thiện, giống người phỏng vấn nói trực tiếp với người được phỏng vấn
 - Người phỏng vấn không được đọc tài liệu mà AI được nhận, không sinh ra những câu hỏi dựa trên ví dụ cụ thể trong văn bản được nhận
 - Không hỏi liên tục về một nội dung quá 3 câu, không tiếp tục sinh câu hỏi từ chunk id trong Recent Q&A
+- Không sinh câu hỏi từ nội dung trong Recent Q&A, Recent Q&A chỉ mang giá trị tham khảo về sinh câu hỏi tiếp theo nếu nội dung có liên quan
 """.strip()
 
 def prompt_generate_question_from_system_curriculum_with_session(
@@ -175,7 +176,7 @@ Bạn là giảng viên đang phỏng vấn sinh viên để kiểm tra. Hãy đ
 [Session Summary - tóm tắt tiến trình tới hiện tại]
 {summary}
 
-[Recent Q&A - vài lượt gần nhất]
+[Recent Q&A - vài lượt gần nhất - KHÔNG SINH CÂU HỎI DỰA TRÊN THÔNG TIN TRONG NÀY]
 {recent_qa_str}
 
 [Content]
@@ -207,7 +208,8 @@ Quy tắc:
 - Câu hỏi phải hỏi người dùng về kiến thức / áp dụng / lý giải, có thể tạo các câu hỏi tính toán dựa trên lý thuyết nhận được.
 - Ngôn ngữ thân thiện, giống người phỏng vấn nói trực tiếp với người được phỏng vấn
 - Người phỏng vấn không được đọc tài liệu mà AI được nhận, không sinh ra những câu hỏi dựa trên ví dụ cụ thể trong văn bản được nhận
-- Không hỏi liên tục về một nội dung quá 3 câu, không tiếp tục sinh câu hỏi từ chunk id trong  Recent Q&A
+- Không hỏi liên tục về một nội dung quá 3 câu, không tiếp tục sinh câu hỏi từ chunk id trong Recent Q&A
+- Không sinh câu hỏi từ nội dung trong Recent Q&A, Recent Q&A chỉ mang giá trị tham khảo về sinh câu hỏi tiếp theo nếu nội dung có liên quan
 """.strip()
 
 # ==== Routes ====
