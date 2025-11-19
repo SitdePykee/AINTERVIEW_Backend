@@ -153,6 +153,7 @@ Quy tắc:
 
 def prompt_generate_question_from_system_curriculum_with_session(
     summary: str,
+    subject: str,
     recent_qa: List[Dict],
     context_formatted: str,
     difficulty: str,
@@ -163,14 +164,14 @@ def prompt_generate_question_from_system_curriculum_with_session(
     recent_qa_str = json.dumps(recent_qa, ensure_ascii=False, indent=2)
 
     return f"""
-Bạn là giảng viên đang phỏng vấn sinh viên để kiểm tra. Hãy đọc thông tin buổi phỏng vấn sau:
+Bạn là giảng viên đang phỏng vấn sinh viên để kiểm tra về {subject}. Hãy đọc thông tin buổi phỏng vấn sau:
 
 [Content]
 \"\"\"{context_formatted}\"\"\"
 
 Nhiệm vụ:
 Sinh ra 1 câu hỏi phỏng vấn mới dạng {type_str}, độ khó Bloom: {difficulty}
-- Câu hỏi phải hoàn toàn dựa trên nội dung trong [Content] và không dùng kiến thức bên ngoài.
+- Câu hỏi phải hoàn toàn dựa trên nội dung trong [Content], liên quan đến {subject} và không dùng kiến thức bên ngoài.
 - Không tạo câu hỏi tổng quát hay kiến thức phổ biến nếu chunk không nhắc tới.
 Yêu cầu bổ sung (nếu có): {additional}
 
@@ -387,6 +388,7 @@ def next_question():
 def next_question_system():
     data = request.get_json(force=True)
     session_id = data.get("session_id")
+    subject = data.get("subject")
 
     if not session_id:
         return jsonify({"error": "session_id is required"}), 400
@@ -428,11 +430,12 @@ def next_question_system():
     summary = interview.get("summary", "")
     recent_qa = interview.get("qa_log", [])[-4:]
 
-    prompt = prompt_generate_question_with_session(
+    prompt = prompt_generate_question_from_system_curriculum_with_session(
         summary=summary,
         recent_qa=recent_qa,
         context_formatted=context_formatted,
         difficulty=difficulty,
+        subject= subject,
         types=types,
         additional=additional,
     )
