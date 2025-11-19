@@ -47,7 +47,7 @@ def load_texts_by_system_chunk_ids(chunk_ids):
         try:
             doc = system_chunks_col.find_one({"_id": id})
             if doc:
-                texts.append({"cid": id, "text": doc.get("text", "")})
+                texts.append({"cid": id, "text": doc.get("content", "")})
         except Exception:
             continue
     return texts
