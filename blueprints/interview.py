@@ -17,6 +17,7 @@ system_chunks_col = db["system_book_chunks"]
 interviews_col = db["interviews"]
 interview_session_col = db["interview_session"]
 users_col = db["users"]
+system_curriculums_col = db["systemCurriculum"]
 
 # ==== Blueprint ====
 interview_bp = Blueprint("interview", __name__)
@@ -388,7 +389,6 @@ def next_question():
 def next_question_system():
     data = request.get_json(force=True)
     session_id = data.get("session_id")
-    subject = data.get("subject")
 
     if not session_id:
         return jsonify({"error": "session_id is required"}), 400
@@ -401,6 +401,8 @@ def next_question_system():
     db_interview = interviews_col.find_one({"_id": interview_id})
     if not db_interview:
         return jsonify({"error": "Interview not found in DB"}), 404
+
+    subject = system_curriculums_col.find_one({"uuid": db_interview["syllabus_id"]})
 
     difficulty = db_interview.get("difficulty")
     question_type = db_interview.get("questionType")
@@ -435,9 +437,9 @@ def next_question_system():
         recent_qa=recent_qa,
         context_formatted=context_formatted,
         difficulty=difficulty,
-        subject= subject,
         types=types,
         additional=additional,
+        subject=subject,
     )
 
     try:
