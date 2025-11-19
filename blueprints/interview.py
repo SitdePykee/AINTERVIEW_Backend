@@ -144,12 +144,11 @@ Trả về JSON object:
 
 Quy tắc:
 - Nếu question_type != "multiple_choice" thì bỏ trường "options".
-- Không sinh những câu hỏi "Theo tài liệu nhận được", "Dựa trên ví dụ" hoặc tương tự
+- Không sinh những câu hỏi "Theo tài liệu nhận được", "Dựa trên ví dụ", "Được đề câp trong tài liệu" hoặc tương tự
 - Chỉ trả JSON thuần, không thêm bất kì gì khác, đặc biệt là không markdown code block (```json ... ```), không sử dụng Latex.
 - Câu hỏi phải hỏi người dùng về kiến thức / áp dụng / lý giải, có thể tạo các câu hỏi tính toán dựa trên lý thuyết nhận được.
 - Ngôn ngữ thân thiện, giống người phỏng vấn nói trực tiếp với người được phỏng vấn
-- Người phỏng vấn không được đọc tài liệu mà AI được nhận, không sinh ra những câu hỏi dựa trên ví dụ cụ thể trong văn bản được nhận
-- Không hỏi liên tục về một nội dung quá 3 câu
+- Người phỏng vấn không được đọc tài liệu mà AI được nhận, không sinh ra những câu hỏi dựa trên ví dụ cụ thể hay theo thông tin được đọc trong văn bản được nhận
 """.strip()
 
 def prompt_generate_question_from_system_curriculum_with_session(
@@ -190,11 +189,11 @@ Trả về JSON object:
 
 Quy tắc:
 - Nếu question_type != "multiple_choice" thì bỏ trường "options".
-- Không sinh những câu hỏi "Theo tài liệu nhận được", "Dựa trên ví dụ" hoặc tương tự
+- Không sinh những câu hỏi "Theo tài liệu nhận được", "Dựa trên ví dụ", "Được đề câp trong tài liệu" hoặc tương tự
 - Chỉ trả JSON thuần, không thêm bất kì gì khác, đặc biệt là không markdown code block (```json ... ```), không sử dụng Latex.
 - Câu hỏi phải hỏi người dùng về kiến thức / áp dụng / lý giải, có thể tạo các câu hỏi tính toán dựa trên lý thuyết nhận được.
 - Ngôn ngữ thân thiện, giống người phỏng vấn nói trực tiếp với người được phỏng vấn
-- Người phỏng vấn không được đọc tài liệu mà AI được nhận, không sinh ra những câu hỏi dựa trên ví dụ cụ thể trong văn bản được nhận
+- Người phỏng vấn không được đọc tài liệu mà AI được nhận, không sinh ra những câu hỏi dựa trên ví dụ cụ thể hay theo thông tin được đọc trong văn bản được nhận
 """.strip()
 
 # ==== Routes ====
