@@ -184,8 +184,8 @@ Trả về JSON object:
   "options": [...],  # chỉ nếu question_type = "multiple_choice"
   "source": {{
     "chunk_id": "",
-    "start": "None",  
-    "end": "None"     
+    "start": "...",  # thứ tự text bắt đầu được chọn để sinh câu hỏi, kiểu int
+    "end": "..."     # thứ tự text kết thúc được chọn để sinh câu hỏi, kiểu int
   }}
 }}
 
