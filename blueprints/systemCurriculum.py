@@ -4,6 +4,9 @@ import uuid
 import io
 from bson import ObjectId
 import math
+import time
+from flask import jsonify
+
 import requests
 
 
@@ -350,6 +353,9 @@ STATIC_BOOK_IDS = [
     "5f5d8b99-2dc0-43b8-a332-cfcc71067839"
 ]
 
+MAX_RETRY = 5
+DELAY_BETWEEN_REQUEST = 0.15
+
 @curriculum_bp.route('/run-static-embedding-task', methods=['POST'])
 def run_static_embedding_task():
     try:
@@ -373,7 +379,7 @@ def run_static_embedding_task():
         if not access_token:
             return jsonify({"error": "Missing accessToken in login response"}), 500
 
-        # === 2. Call API cho từng BOOK ID trong STATIC LIST ===
+        # === 2. Call API cho từng BOOK ID ===
         embedding_url = "https://qc.neureader.net/v2/readie/embedding"
         headers = {
             "Authorization": f"Bearer {access_token}",
@@ -389,41 +395,64 @@ def run_static_embedding_task():
                 "pageSize": 10000000
             }
 
-            try:
-                resp = requests.post(embedding_url, json=body, headers=headers)
+            retry = 0
+            success = False
+            response_json = None
 
-                if resp.status_code != 200:
-                    results.append({
-                        "bookId": book_id,
-                        "length": None,
-                        "error": f"API Error {resp.status_code}"
-                    })
-                    continue
+            while retry < MAX_RETRY:
+                try:
+                    resp = requests.post(embedding_url, json=body, headers=headers)
 
-                json_data = resp.json()
-                embeddings = json_data.get("data", {}).get("embeddings", [])
-                length = len(embeddings)
+                    if resp.status_code == 200:
+                        response_json = resp.json()
+                        success = True
+                        break
 
-                # === 3. LƯU KẾT QUẢ VÀO MONGO ===
-                batch_results_col.insert_one({
-                    "_id": str(uuid.uuid4()),
-                    "bookId": book_id,
-                    "length": length
-                })
+                    # Nếu 503 → backoff
+                    if resp.status_code == 503:
+                        time.sleep(1 * (2 ** retry))  # 1s → 2s → 4s → 8s...
+                    else:
+                        # lỗi khác: bỏ qua luôn
+                        break
 
-                results.append({
-                    "bookId": book_id,
-                    "length": length
-                })
+                except Exception:
+                    # backoff nhẹ
+                    time.sleep(1 * (2 ** retry))
 
-            except Exception as e:
+                retry += 1
+
+            # === Không thành công sau retry ===
+            if not success:
                 results.append({
                     "bookId": book_id,
                     "length": None,
-                    "error": str(e)
+                    "error": f"API Error after {MAX_RETRY} retries"
                 })
+                continue
 
-        # === 4. TRẢ VỀ KẾT QUẢ ===
+            # === Thành công ===
+            embeddings = response_json.get("data", {}).get("embeddings", [])
+            length = len(embeddings)
+
+            batch_results_col.update_one(
+                {"bookId": book_id},
+                {
+                    "$set": {
+                        "bookId": book_id,
+                        "length": length
+                    }
+                },
+                upsert=True
+            )
+
+            results.append({
+                "bookId": book_id,
+                "length": length
+            })
+
+            # === Delay nhẹ để tránh 503 tiếp theo ===
+            time.sleep(DELAY_BETWEEN_REQUEST)
+
         return jsonify({
             "static_book_ids": STATIC_BOOK_IDS,
             "result_count": len(results),
@@ -432,3 +461,4 @@ def run_static_embedding_task():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
