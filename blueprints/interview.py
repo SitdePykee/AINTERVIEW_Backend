@@ -140,8 +140,8 @@ Trả về JSON object:
   "options": [...],  # chỉ nếu question_type = "multiple_choice"
   "source": {{
     "chunk_id": "...",
-    "start": "...",  # offset của kí tự đầu tiên dùng làm nguồn câu hỏi trong chunk
-    "end": "..."     # offset của kí tự cuối cùng dùng làm nguồn câu hỏi trong chunk
+    "start": int,  # offset của kí tự đầu tiên dùng làm nguồn câu hỏi trong chunk
+    "end": int     # offset của kí tự cuối cùng dùng làm nguồn câu hỏi trong chunk
   }}
 }}
 
@@ -186,8 +186,8 @@ Trả về JSON object:
   "options": [...],  # chỉ nếu question_type = "multiple_choice"
   "source": {{
     "chunk_id": "",
-    "start": "...",  # thứ tự text bắt đầu được chọn để sinh câu hỏi, kiểu int
-    "end": "..."     # thứ tự text kết thúc được chọn để sinh câu hỏi, kiểu int
+    "start": int,  # thứ tự text bắt đầu được chọn để sinh câu hỏi, kiểu int
+    "end": int     # thứ tự text kết thúc được chọn để sinh câu hỏi, kiểu int
   }}
 }}
 
@@ -232,8 +232,8 @@ Trả về JSON object:
   "options": [...],  # chỉ nếu question_type = "multiple_choice"
   "source": {{
     "chunk_id": "NEUREADER",
-    "start": "1",  
-    "end": "1"     
+    "start": 1,  
+    "end": 1     
   }}
 }}
 
