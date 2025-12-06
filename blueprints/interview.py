@@ -3,7 +3,8 @@ import json
 import uuid
 import time
 from typing import List, Dict
-
+import requests
+from flask import jsonify
 
 from flask import Blueprint, request, jsonify
 from bson import ObjectId
@@ -18,6 +19,7 @@ interviews_col = db["interviews"]
 interview_session_col = db["interview_session"]
 users_col = db["users"]
 system_curriculums_col = db["systemCurriculum"]
+batch_results_col = db["batchEmbeddingResults"]
 
 # ==== Blueprint ====
 interview_bp = Blueprint("interview", __name__)
@@ -197,6 +199,133 @@ Quy tắc:
 - Ngôn ngữ thân thiện, giống người phỏng vấn nói trực tiếp với người được phỏng vấn
 - Người phỏng vấn không được đọc tài liệu mà AI được nhận, không sinh ra những câu hỏi dựa trên ví dụ cụ thể hay theo thông tin được đọc trong văn bản được nhận
 """.strip()
+
+def prompt_generate_question_from_system_curriculum_neu_reader_chunk_with_session(
+    summary: str,
+    subject: str,
+    recent_qa: List[Dict],
+    context_formatted: str,
+    difficulty: str,
+    types: List[str],
+    additional: str
+) -> str:
+    type_str = " hoặc ".join(types)
+    recent_qa_str = json.dumps(recent_qa, ensure_ascii=False, indent=2)
+
+    return f"""
+Bạn là giảng viên đang phỏng vấn sinh viên để kiểm tra kiến thức. Chỉ bạn được nhận {subject} Hãy đọc thông tin buổi phỏng vấn sau:
+
+[Content]
+\"\"\"{context_formatted}\"\"\"
+
+Nhiệm vụ:
+Sinh ra 1 câu hỏi phỏng vấn mới dạng {type_str}, độ khó Bloom: {difficulty}
+- Câu hỏi phải hoàn toàn dựa trên nội dung trong [Content], liên quan đến môn học trong {subject} và không dùng kiến thức bên ngoài.
+- Không tạo câu hỏi tổng quát hay kiến thức phổ biến nếu không nhắc tới.
+Yêu cầu bổ sung (nếu có): {additional}
+
+Trả về JSON object:
+{{
+  "question": "...",
+  "question_type": "...",
+  "answer": "...",
+  "options": [...],  # chỉ nếu question_type = "multiple_choice"
+  "source": {{
+    "chunk_id": "NEUREADER",
+    "start": "1",  
+    "end": "1"     
+  }}
+}}
+
+Quy tắc:
+- Nếu question_type != "multiple_choice" thì bỏ trường "options".
+- Không sinh những câu hỏi "Theo tài liệu nhận được", "Dựa trên ví dụ", "Được đề câp trong tài liệu" hoặc tương tự
+- Chỉ trả JSON thuần, không thêm bất kì gì khác, đặc biệt là không markdown code block (```json ... ```), không sử dụng Latex.
+- Câu hỏi phải hỏi người dùng về kiến thức / áp dụng / lý giải, có thể tạo các câu hỏi tính toán dựa trên lý thuyết nhận được.
+- Ngôn ngữ thân thiện, giống người phỏng vấn nói trực tiếp với người được phỏng vấn
+- Người phỏng vấn không được đọc tài liệu mà AI được nhận, không sinh ra những câu hỏi dựa trên ví dụ cụ thể hay theo thông tin được đọc trong văn bản được nhận
+""".strip()
+
+
+# Biến global để tránh login lại
+GLOBAL_ACCESS_TOKEN = None
+
+def select_chunks_randomly_by_system_syllabus_neu_reader_chunk(book_id: str, k: int = 15):
+    global GLOBAL_ACCESS_TOKEN
+
+    # 1) Lấy length từ batchEmbeddingResults
+    record = batch_results_col.find_one(
+        {"bookId": book_id},
+        {"length": 1, "_id": 0}
+    )
+
+    if not record or "length" not in record:
+        return ""
+
+    length = record["length"]
+
+    # maxPageNumber = length / k
+    max_page = max(0, int(length / k))
+
+    # 2) Lấy access_token nếu chưa có
+    if GLOBAL_ACCESS_TOKEN is None:
+        login_url = "https://qc.neureader.net/v2/auth/login"
+        login_body = {
+            "email": "11223735",
+            "password": "000000"
+        }
+        login_response = requests.post(login_url, json=login_body)
+
+        if login_response.status_code != 200:
+            return jsonify({
+                "error": f"Login failed: {login_response.status_code}",
+                "details": login_response.text
+            }), 500
+
+        token_data = login_response.json()
+        GLOBAL_ACCESS_TOKEN = token_data.get("data", {}).get("accessToken")
+
+        if not GLOBAL_ACCESS_TOKEN:
+            return jsonify({
+                "error": "No accessToken found in login response",
+                "login_response": token_data
+            }), 500
+
+    # 3) Gọi embedding API với pageNumber ngẫu nhiên
+    embedding_url = "https://qc.neureader.net/v2/readie/embedding"
+    headers = {
+        "Authorization": f"Bearer {GLOBAL_ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
+    # Chọn k page ngẫu nhiên
+    selected_pages = random.sample(range(0, max_page + 1), k)
+
+    merged_text = []
+
+    for page in selected_pages:
+        body = {
+            "bookId": book_id,
+            "pageNumber": page,
+            "pageSize": k
+        }
+
+        resp = requests.post(embedding_url, json=body, headers=headers)
+
+        if resp.status_code != 200:
+            continue
+
+        data = resp.json().get("data", {})
+        embeddings = data.get("embeddings", [])
+
+        for item in embeddings:
+            txt = item.get("text")
+            if txt:
+                merged_text.append(txt)
+
+
+    return merged_text
+
 
 # ==== Routes ====
 
@@ -420,22 +549,24 @@ def next_question_system():
     # --------------------
 
     syllabus_id = db_interview.get("syllabus_id")
-    selected_chunk_ids = select_chunks_randomly_by_system_syllabus(syllabus_id, 3)
-    if not selected_chunk_ids:
-        return jsonify({"error": "No valid chunks found"}), 404
+    # selected_chunk_ids = select_chunks_randomly_by_system_syllabus(syllabus_id, 3)
+    #
+    # if not selected_chunk_ids:
+    #     return jsonify({"error": "No valid chunks found"}), 404
 
-    texts = load_texts_by_system_chunk_ids(selected_chunk_ids)
+    # texts = load_texts_by_system_chunk_ids(selected_chunk_ids)
+    texts = select_chunks_randomly_by_system_syllabus_neu_reader_chunk(syllabus_id, 15)
     if not texts:
         return jsonify({"error": "No valid chunks found"}), 404
 
-    context_formatted = "\n\n".join([f"[{t['cid']}]: {t['text']}" for t in texts])
+    # context_formatted = "\n\n".join([f"[{t['cid']}]: {t['text']}" for t in texts])
     summary = interview.get("summary", "")
     recent_qa = interview.get("qa_log", [])[-4:]
 
-    prompt = prompt_generate_question_from_system_curriculum_with_session(
+    prompt = prompt_generate_question_from_system_curriculum_neu_reader_chunk_with_session(
         summary=summary,
         recent_qa=recent_qa,
-        context_formatted=context_formatted,
+        context_formatted=texts,
         difficulty=difficulty,
         types=types,
         additional=additional,
